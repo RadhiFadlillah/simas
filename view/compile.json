@@ -1,0 +1,5 @@
+{
+    "compress": true,
+    "strictMath": true,
+    "autoprefixer": "> 5%;last 2 versions"
+}
