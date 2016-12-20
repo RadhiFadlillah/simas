@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>SIMAS - Sistem Manajemen Surat</title>
+
+    <!-- Meta -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Favicon -->
+    <link rel="apple-touch-icon-precomposed" sizes="57x57" href="/res/apple-touch-icon-57x57.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/res/apple-touch-icon-114x114.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/res/apple-touch-icon-72x72.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/res/apple-touch-icon-144x144.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="120x120" href="/res/apple-touch-icon-120x120.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="/res/apple-touch-icon-152x152.png" />
+    <link rel="icon" type="image/png" href="/res/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/res/favicon-16x16.png" sizes="16x16" />
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/style/css/perfect-scrollbar.css">
+    <link rel="stylesheet" href="/style/css/source-sans-pro.css">
+    <link rel="stylesheet" href="/style/css/font-awesome.css">
+    <link rel="stylesheet" href="/style/css/stylesheet.css">
+
+    <!-- Javascript -->
+    <script src="/style/js/vue.js"></script>
+    <script src="/style/js/axios.js"></script>
+    <script src="/style/js/lodash.js"></script>
+    <script src="/style/js/moment.js"></script>
+    <script src="/style/js/moment-id.js"></script>
+    <script src="/style/js/js-cookie.js"></script>
+    <script src="/style/js/perfect-scrollbar.js"></script>
+</head>
+
+<body>
+    <div id="app" class="home" style="display: none">
+        <div id="sidebar">
+            <img id="logo" src="/res/logo.svg">
+            <a id="btn-add" @click="btnAddAction">{{btnAddCaption}}</a>
+            <template v-for="item in sidebar.item" v-if="item.visible">
+                <div v-if="item.hasSeparator" class="separator"></div>
+                <a class="sidebar-link" :class="{selected: sidebar.selected === item.value}" @click="selectSidebar(item.value)"><i class="fa fa-fw" :class="item.icon" aria-hidden="true"></i>{{item.caption}}</a>
+            </template>
+            <div class="spacer"></div>
+            <div id="user-area">
+                <p>{{sidebar.account.nama}}</p>
+                <div class="user-menu">
+                    <a @click="showEditAkunAktif"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+                    <a @click="showEditPassword"><i class="fa fa-fw fa-unlock-alt" aria-hidden="true"></i></a>
+                    <a @click="showDialogLogout"><i class="fa fa-fw fa-sign-out" aria-hidden="true"></i></a>
+                </div>
+            </div>
+        </div>
+        <div id="content">
+            <div id="page-list">
+                <div id="search-area">
+                    <label for="txt-search"><i class="fa fa-fw fa-search" aria-hidden="true"></i></label>
+                    <input type="text" :placeholder="searchHint" :value="pageList.keyword" @input="filterPageList">
+                </div>
+                <div id="item-list-area">
+                    <p class="error-message" v-if="pageList.error.visible">Gagal mengambil data</p>
+                    <p id="empty-message" v-if="listEmpty">{{emptyMessage}}</p>
+                    <template v-if="sidebar.selected === 4">
+                        <div class="list-item account-item" v-for="(akun, idx) in pageList.item">
+                            <p class="main-caption" :class="{admin: akun.admin === 1}">{{akun.nama}}<span></span></p>
+                            <p class="info">{{akun.username}}</p>
+                            <div class="item-menu">
+                                <a @click="showEditAkun(akun, idx)"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+                                <a @click="showDeleteAkun(akun, idx)"><i class="fa fa-fw fa-trash" aria-hidden="true"></i></a>
+                            </div>
+                        </div>
+                    </template>
+                    <template v-else-if="sidebar.selected === 5">
+                        <div class="list-item dosen-item" v-for="(dosen, idx) in pageList.item">
+                            <p class="main-caption">{{dosen.nama}}</p>
+                            <p class="info">{{dosen.jabatan}}</p>
+                            <div class="item-menu">
+                                <a @click="showEditDosen(dosen, idx)"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+                                <a @click="showDeleteDosen(dosen, idx)"><i class="fa fa-fw fa-trash" aria-hidden="true"></i></a>
+                            </div>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <div class="list-item inbox-item" v-for="(surat, idx) in pageList.item" :class="[statusClass(surat.status), {selected: pageList.selected === surat.id}]" @click="selectSurat(surat.id, idx)">
+                            <p class="sub-caption">{{surat.sumber}}</p>
+                            <p class="main-caption">{{surat.perihal}}<span></span></p>
+                            <p class="info">{{surat.nomor}}<span class="prioritas" :class="surat.prioritas | prioritasClass"></span><span class="tanggal">{{surat.tanggal | dateFormat('YYYY-MM-DD', 'DD MMM YYYY')}}</span></p>
+                        </div>
+                    </template>
+                    <a id="btn-load-item" v-if="listIsLoadable" @click="loadMore">Load lebih banyak</a>
+                </div>
+            </div>
+            <div id="page-detail" v-if="pageDetail.visible">
+                <div id="detail-header">
+                    <a id="btn-back" @click="closePageDetail"><i class="fa fa-fw fa-arrow-left" aria-hidden="true"></i></a>
+                    <p id="header-perihal">{{pageDetail.surat.perihal}}</p>
+                    <div id="header-menu">
+                        <a @click="showEditSurat"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
+                        <a @click="showDeleteSurat"><i class="fa fa-fw fa-trash" aria-hidden="true"></i></a>
+                    </div>
+                </div>
+                <div id="detail-content">
+                    <div id="detail-surat">
+                        <div>
+                            <p class="label">Nomor surat</p>
+                            <p class="value">{{pageDetail.surat.nomor}}</p>
+                        </div>
+                        <div>
+                            <p class="label">Tanggal surat</p>
+                            <p class="value">{{pageDetail.surat.tanggal | dateFormat('YYYY-MM-DD', 'DD MMMM YYYY')}}</p>
+                        </div>
+                        <div>
+                            <p class="label">Sumber surat</p>
+                            <p class="value">{{pageDetail.surat.sumber}}</p>
+                        </div>
+                        <div>
+                            <p class="label">Waktu terima</p>
+                            <p class="value">{{pageDetail.surat.waktuTerima | dateFormat('YYYY-MM-DD HH:mm:ss', 'DD MMMM YYYY [jam] HH:mm') | replace(' jam 00:00', '')}}</p>
+                        </div>
+                        <div>
+                            <p class="label">Prioritas</p>
+                            <p class="value prioritas" :class="pageDetail.surat.prioritas | prioritasClass">{{pageDetail.surat.prioritas | prioritasClass}}</p>
+                        </div>
+                        <div>
+                            <p class="label">Status</p>
+                            <p class="value" :class="statusClass(pageDetail.surat.status)">{{pageDetail.surat.status | statusName}}</p>
+                        </div>
+                    </div>
+                    <div class="timeline">
+                        <timeline-item v-for="item in pageDetail.timeline" :id="item.id" :target="item.target" :jabatan="item.jabatan" :waktu="item.waktu" :status="item.status" :children="item.children" @disposisi-click="showDialogDisposisi" @diarsip-click="showDialogDiarsip" @ditindak-click="showDialogDitindak">
+                        </timeline-item>
+                        <div class="timeline-act">
+                            <a class="disposisi" @click="showDialogDisposisi(0)"></a>
+                            <a v-if="pageDetail.timeline.length === 0" class="diarsip"></a>
+                            <a v-if="pageDetail.timeline.length === 0" class="ditindak"></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="overlay" v-if="overlayVisible" @keyup.esc="closeDialog">
+            <div class="dialog" id="dialog-input-surat" v-if="inputSurat.visible">
+                <p class="header">{{inputSurat.isNew ? 'Surat Baru' : 'Edit Surat'}}</p>
+                <p class="error-message" v-if="inputSurat.error.visible">{{inputSurat.error.message}}</p>
+                <div class="field">
+                    <label>Nomor surat</label>
+                    <input tabindex="1" ref="txtNomorSurat" type="text" placeholder="Nomor surat" v-model.trim="inputSurat.field.nomor" @keyup.enter="simpanSurat">
+                </div>
+                <div class="field">
+                    <label>Perihal</label>
+                    <input tabindex="2" type="text" placeholder="Perihal" v-model.trim="inputSurat.field.perihal" @keyup.enter="simpanSurat">
+                </div>
+                <div class="field">
+                    <label>Sumber surat</label>
+                    <input tabindex="3" type="text" placeholder="Sumber surat" v-model.trim="inputSurat.field.sumber" @keyup.enter="simpanSurat">
+                </div>
+                <div class="field">
+                    <label>Tanggal surat</label>
+                    <input tabindex="4" type="text" placeholder="Tanggal surat" v-model.trim="inputSurat.field.tanggal" @keyup.enter="simpanSurat">
+                </div>
+                <div class="field">
+                    <label>Waktu terima</label>
+                    <input tabindex="5" type="text" placeholder="Waktu terima" v-model.trim="inputSurat.field.waktuTerima" @keyup.enter="simpanSurat">
+                </div>
+                <div class="field">
+                    <label>Prioritas</label>
+                    <div class="choice-area">
+                        <div class="choice-item">
+                            <input tabindex="6" name="prioritas" id="choice-biasa" type="radio" value="0" v-model="inputSurat.field.prioritas">
+                            <label for="choice-biasa">Biasa</label>
+                        </div>
+                        <div class="choice-item">
+                            <input tabindex="6" name="prioritas" id="choice-segera" type="radio" value="1" v-model="inputSurat.field.prioritas">
+                            <label for="choice-segera">Segera</label>
+                        </div>
+                        <div class="choice-item">
+                            <input tabindex="6" name="prioritas" id="choice-penting" type="radio" value="2" v-model="inputSurat.field.prioritas">
+                            <label for="choice-penting">Penting</label>
+                        </div>
+                        <div class="choice-item">
+                            <input tabindex="6" name="prioritas" id="choice-rahasia" type="radio" value="3" v-model="inputSurat.field.prioritas">
+                            <label for="choice-rahasia">Rahasia</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer">
+                    <a tabindex="8" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
+                    <a tabindex="7" class="main-button" @click="simpanSurat" @keyup.enter="simpanSurat">Simpan</a>
+                </div>
+            </div>
+            <div class="dialog" id="dialog-input-akun" v-if="inputAkun.visible">
+                <p class="header">{{inputAkun.isNew ? 'Akun Baru' : 'Edit Akun'}}</p>
+                <p class="error-message" v-if="inputAkun.error.visible">{{inputAkun.error.message}}</p>
+                <div class="field">
+                    <label>Nama</label>
+                    <input tabindex="1" ref="txtNamaAkun" type="text" placeholder="Nama pemilik akun" v-model.trim="inputAkun.field.nama" @keyup.enter="simpanAkun">
+                </div>
+                <div class="field">
+                    <label>Username</label>
+                    <input tabindex="2" type="text" placeholder="Username untuk login" v-model.trim="inputAkun.field.username" @keyup.enter="simpanAkun">
+                </div>
+                <div class="field" v-if="inputAkun.isNew">
+                    <label>Password</label>
+                    <input tabindex="3" type="password" placeholder="Password untuk login" v-model.trim="inputAkun.field.password" @keyup.enter="simpanAkun">
+                </div>
+                <div class="field" v-if="inputAkun.isNew">
+                    <label>Ulangi password</label>
+                    <input tabindex="4" type="password" placeholder="Ulangi lagi password" v-model.trim="inputAkun.field.ulangPassword" @keyup.enter="simpanAkun">
+                </div>
+                <div class="field">
+                    <label>Admin</label>
+                    <div class="choice-area">
+                        <div class="choice-item">
+                            <input tabindex="5" name="admin" id="choice-admin-no" type="radio" value="0" v-model="inputAkun.field.admin">
+                            <label for="choice-admin-no">Tidak</label>
+                        </div>
+                        <div class="choice-item">
+                            <input tabindex="5" name="admin" id="choice-admin-yes" type="radio" value="1" v-model="inputAkun.field.admin">
+                            <label for="choice-admin-yes">Ya</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer">
+                    <a tabindex="7" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
+                    <a tabindex="6" class="main-button" @click="simpanAkun" @keyup.enter="simpanAkun">Simpan</a>
+                </div>
+            </div>
+            <div class="dialog" id="dialog-input-dosen" v-if="inputDosen.visible">
+                <p class="header">{{inputDosen.isNew ? 'Dosen Baru' : 'Edit Dosen'}}</p>
+                <p class="error-message" v-if="inputDosen.error.visible">{{inputDosen.error.message}}</p>
+                <div class="field">
+                    <label>Nama</label>
+                    <input tabindex="1" ref="txtNamaDosen" type="text" placeholder="Nama lengkap dosen" v-model.trim="inputDosen.field.nama" @keyup.enter="simpanDosen">
+                </div>
+                <div class="field">
+                    <label>Jabatan</label>
+                    <input tabindex="2" type="text" placeholder="Jabatan dosen" v-model.trim="inputDosen.field.jabatan" @keyup.enter="simpanDosen">
+                </div>
+                <div class="footer">
+                    <a tabindex="4" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
+                    <a tabindex="3" class="main-button" @click="simpanDosen" @keyup.enter="simpanDosen">Simpan</a>
+                </div>
+            </div>
+            <div class="dialog" id="dialog-disposisi" v-if="dialogDisposisi.visible" @click="closeDisposisiSuggestion">
+                <p class="header">Disposisi Surat</p>
+                <p class="error-message" v-if="dialogDisposisi.error.visible">{{dialogDisposisi.error.message}}</p>
+                <div class="field">
+                    <label>Nama tujuan</label>
+                    <input tabindex="1" ref="txtNamaDosen" type="text" placeholder="Nama dosen tujuan disposisi" :value="dialogDisposisi.field.target" @input="getDosenSuggestion" @keyup.enter="selectDisposisiSuggestion(0)" @keyup.down="focusDisposisiSuggestion(0)">
+                    <div class="suggestion" v-if="dialogDisposisi.suggestion.visible">
+                        <div ref="disposisiSuggestionItem" 
+                             class="suggestion-item" 
+                             v-for="(dosen, idx) in dialogDisposisi.suggestion.item" 
+                             :tabindex="2 + idx" 
+                             @keyup.up="focusDisposisiSuggestion(idx - 1)"
+                             @keyup.down="focusDisposisiSuggestion(idx + 1)"
+                             @keyup.enter="selectDisposisiSuggestion(idx)"
+                             @click="selectDisposisiSuggestion(idx)">
+                            <p class="main">{{dosen.nama}}</p>
+                            <p class="info">{{dosen.jabatan}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Waktu</label>
+                    <input :tabindex="2 + dialogDisposisi.suggestion.item.length" ref="txtWaktuDisposisi" type="text" placeholder="Tanggal dan jam disposisi" v-model.trim="dialogDisposisi.field.waktu" @focus="closeDisposisiSuggestion" @keyup.enter="simpanDisposisi">
+                </div>
+                <div class="footer">
+                    <a :tabindex="4 + dialogDisposisi.suggestion.item.length" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
+                    <a :tabindex="3 + dialogDisposisi.suggestion.item.length" class="main-button" @click="simpanDisposisi" @keyup.enter="simpanDisposisi">Simpan</a>
+                </div>
+            </div>
+            <div class="dialog" id="dialog-diarsip" v-if="dialogDiarsip.visible">
+                <p class="header">Arsipkan Surat</p>
+                <p class="error-message" v-if="dialogDiarsip.error.visible">{{dialogDiarsip.error.message}}</p>
+                <div class="field">
+                    <label>Waktu</label>
+                    <input tabindex="1" ref="txtWaktuDiarsip" type="text" placeholder="Tanggal dan jam surat diarsipkan" v-model.trim="dialogDiarsip.field.waktu" @keyup.enter="simpanDiarsip">
+                </div>
+                <div class="footer">
+                    <a tabindex="3" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
+                    <a tabindex="2" class="main-button" @click="simpanDiarsip" @keyup.enter="simpanDiarsip">Simpan</a>
+                </div>
+            </div>
+            <div class="dialog" id="dialog-ditindak" v-if="dialogDitindak.visible">
+                <p class="header">Tindaklanjuti Surat</p>
+                <p class="error-message" v-if="dialogDitindak.error.visible">{{dialogDitindak.error.message}}</p>
+                <div class="field">
+                    <label>Waktu</label>
+                    <input tabindex="1" ref="txtWaktuDitindak" type="text" placeholder="Tanggal dan jam surat ditindaklanjuti" v-model.trim="dialogDitindak.field.waktu" @keyup.enter="simpanDitindak">
+                </div>
+                <div class="footer">
+                    <a tabindex="3" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
+                    <a tabindex="2" class="main-button" @click="simpanDitindak" @keyup.enter="simpanDitindak">Simpan</a>
+                </div>
+            </div>
+            <div class="dialog" id="dialog-edit-password" v-if="editPassword.visible">
+                <p class="header">Ubah Password</p>
+                <p class="error-message" v-if="editPassword.error.visible">{{editPassword.error.message}}</p>
+                <div class="field">
+                    <label>Password lama</label>
+                    <input tabindex="1" ref="txtPasswordLama" type="password" placeholder="Password lama" v-model.trim="editPassword.field.passwordLama" @keyup.enter="simpanPassword">
+                </div>
+                <div class="field">
+                    <label>Password baru</label>
+                    <input tabindex="2" type="password" placeholder="Password baru" v-model.trim="editPassword.field.password" @keyup.enter="simpanPassword">
+                </div>
+                <div class="field">
+                    <label>Ulangi password</label>
+                    <input tabindex="3" type="password" placeholder="Ulangi lagi password yang baru" v-model.trim="editPassword.field.ulangPassword" @keyup.enter="simpanPassword">
+                </div>
+                <div class="footer">
+                    <a tabindex="5" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
+                    <a tabindex="4" class="main-button" @click="simpanPassword" @keyup.enter="simpanPassword">Simpan</a>
+                </div>
+            </div>
+            <div class="dialog" id="dialog-message" v-if="dialog.visible">
+                <p class="header">{{dialog.title}}</p>
+                <p class="message">{{dialog.message}}</p>
+                <div class="footer">
+                    <a tabindex="2" @click="dialog.subAction" @keyup.enter="dialog.subAction" v-if="dialog.subCaption !== ''">{{dialog.subCaption}}</a>
+                    <a tabindex="1" ref="mainDialogButton" class="main-button" @click="dialog.mainAction" @keyup.enter="dialog.mainAction">{{dialog.mainCaption}}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/x-template" id="timeline-item">
+        <div class="timeline-item" :class="statusClass">
+            <div class="timeline-content">
+                <p class="time">{{waktuAksi}}</p>
+                <p class="value">{{statusMessage}} <span>{{target}}</span></p>
+                <p class="jabatan">{{jabatan}}</p>
+            </div>
+            <div class="timeline">
+                <timeline-item v-for="child in children" :id="child.id" :target="child.target" :jabatan="child.jabatan" :waktu="child.waktu" :status="child.status" :children="child.children" @disposisi-click="disposisiClicked" @diarsip-click="diarsipClicked" @ditindak-click="ditindakClicked">
+                </timeline-item>
+                <div v-if="status < 1" class="timeline-act">
+                    <a class="disposisi" @click="disposisiClicked(id)"></a>
+                    <a v-if="children.length === 0" class="diarsip" @click="diarsipClicked(id)"></a>
+                    <a v-if="children.length === 0" class="ditindak" @click="ditindakClicked(id)"></a>
+                </div>
+            </div>
+        </div>
+    </script>
+
+    <script>
+        // Set locale
+        moment.locale('id');
+        
+        // Parse token
+        var token = Cookies.get('token');
+        
+        if (token == null) {
+            location.href = '/login';
+        }
+        
+        var payload = token.split('.')[1],
+            decoded = atob(payload),
+            payloadData = JSON.parse(decoded);
+        
+        // Register component
+        Vue.component('timeline-item', {
+            template: '#timeline-item',
+            props: {
+                id: Number,
+                target: String,
+                jabatan: String,
+                waktu: String,
+                status: Number,
+                children: Array
+            },
+            computed: {
+                statusClass: function() {
+                    if (this.status === 2) return 'ditindak';
+                    else if (this.status === 1) return 'diarsip';
+                    else return 'disposisi';
+                },
+                statusMessage: function() {
+                    if (this.status === 2) return 'Ditindaklanjuti oleh';
+                    else if (this.status === 1) return 'Diarsipkan oleh';
+                    else return 'Didisposisikan ke';
+                },
+                waktuAksi: function() {
+                    return moment(this.waktu, 'YYYY-MM-DD HH:mm:ss')
+                        .format('DD MMMM YYYY [jam] HH:mm')
+                        .replace(' jam 00:00', '');
+                }
+            },
+            methods: {
+                disposisiClicked: function(parent) {
+                    this.$emit('disposisi-click', parent);
+                },
+                diarsipClicked: function(id) {
+                    this.$emit('diarsip-click', id);
+                },
+                ditindakClicked: function(id) {
+                    this.$emit('ditindak-click', id);
+                }
+            }
+        });
+        
+        // Register app
+        var app = new Vue({
+            el: '#app',
+            data: {
+                sidebar: {
+                    selected: 0,
+                    item: [{
+                        value: 0,
+                        hasSeparator: false,
+                        caption: 'Semua Surat',
+                        icon: 'fa-inbox',
+                        visible: true
+                    }, {
+                        value: 1,
+                        hasSeparator: false,
+                        caption: 'Dalam Proses',
+                        icon: 'fa-clock-o',
+                        visible: true
+                    }, {
+                        value: 2,
+                        hasSeparator: false,
+                        caption: 'Diarsipkan',
+                        icon: 'fa-folder',
+                        visible: true
+                    }, {
+                        value: 3,
+                        hasSeparator: false,
+                        caption: 'Ditindaklanjuti',
+                        icon: 'fa-check-circle',
+                        visible: true
+                    }, {
+                        value: 4,
+                        hasSeparator: true,
+                        caption: 'Kelola Akun',
+                        icon: 'fa-users',
+                        visible: payloadData.admin
+                    }, {
+                        value: 5,
+                        hasSeparator: false,
+                        caption: 'Kelola Dosen',
+                        icon: 'fa-address-book',
+                        visible: payloadData.admin
+                    }],
+                    account: {
+                        id: payloadData.sub,
+                        nama: payloadData.name,
+                        username: payloadData.uname,
+                        admin: payloadData.admin ? 1 : 0
+                    }
+                },
+                pageList: {
+                    page: 1,
+                    maxPage: 1,
+                    keyword: '',
+                    item: [],
+                    selected: 0,
+                    error: {
+                        visible: false,
+                        message: ''
+                    }
+                },
+                pageDetail: {
+                    visible: false,
+                    index: 0,
+                    surat: {
+                        id: '',
+                        nomor: '',
+                        perihal: '',
+                        sumber: '',
+                        tanggal: '',
+                        waktuTerima: '',
+                        prioritas: 0,
+                        status: 0
+                    },
+                    timeline: []
+                },
+                inputSurat: {
+                    visible: false,
+                    isNew: false,
+                    error: {
+                        visible: false,
+                        message: ''
+                    },
+                    field: {
+                        id: 0,
+                        nomor: '',
+                        perihal: '',
+                        sumber: '',
+                        tanggal: '',
+                        waktuTerima: '',
+                        prioritas: 0
+                    }
+                },
+                inputAkun: {
+                    visible: false,
+                    isNew: false,
+                    error: {
+                        visible: false,
+                        message: ''
+                    },
+                    field: {
+                        id: 0,
+                        nama: '',
+                        username: '',
+                        password: '',
+                        ulangPassword: '',
+                        admin: 0,
+                        index: -1
+                    }
+                },
+                inputDosen: {
+                    visible: false,
+                    isNew: false,
+                    error: {
+                        visible: false,
+                        message: ''
+                    },
+                    field: {
+                        id: 0,
+                        nama: '',
+                        jabatan: '',
+                        index: -1
+                    }
+                },
+                dialogDisposisi: {
+                    visible: false,
+                    error: {
+                        visible: false,
+                        message: ''
+                    },
+                    field: {
+                        parentId: 0,
+                        targetId: 0,
+                        target: '',
+                        waktu: ''
+                    },
+                    suggestion: {
+                        visible: false,
+                        item: []
+                    }
+                },
+                dialogDiarsip: {
+                    visible: false,
+                    error: {
+                        visible: false,
+                        message: ''
+                    },
+                    field: {
+                        id: '',
+                        waktu: ''
+                    }
+                },
+                dialogDitindak: {
+                    visible: false,
+                    error: {
+                        visible: false,
+                        message: ''
+                    },
+                    field: {
+                        id: '',
+                        waktu: ''
+                    }
+                },
+                editPassword: {
+                    visible: false,
+                    error: {
+                        visible: false,
+                        message: ''
+                    },
+                    field: {
+                        id: 0,
+                        passwordLama: '',
+                        password: '',
+                        ulangPassword: ''
+                    }
+                },
+                dialog: {
+                    visible: false,
+                    title: '',
+                    message: '',
+                    mainCaption: '',
+                    subCaption: '',
+                    mainAction: function() {},
+                    subAction: function() {}
+                }
+            },
+            computed: {
+                btnAddCaption: function() {
+                    if (this.sidebar.selected === 4) return 'Akun Baru';
+                    else if (this.sidebar.selected === 5) return 'Dosen Baru';
+                    else return 'Surat Baru';
+                },
+                btnAddAction: function() {
+                    if (this.sidebar.selected === 4) return this.showInputAkun;
+                    else if (this.sidebar.selected === 5) return this.showInputDosen;
+                    else return this.showInputSurat;
+                },
+                searchHint: function() {
+                    if (this.sidebar.selected === 4) return 'Cari nama dan username akun';
+                    else if (this.sidebar.selected === 5) return 'Cari nama dan jabatan dosen';
+                    else return 'Cari nomor surat, perihal dan sumber surat';
+                },
+                emptyMessage: function() {
+                    if (this.sidebar.selected === 4) return 'Tidak ada akun yang terdaftar';
+                    else if (this.sidebar.selected === 5) return 'Tidak ada dosen yang terdaftar';
+                    else return 'Tidak ada surat yang terdaftar';
+                },
+                overlayVisible: function() {
+                    return this.inputSurat.visible || 
+                        this.inputAkun.visible || 
+                        this.inputDosen.visible || 
+                        this.dialogDisposisi.visible || 
+                        this.dialogDiarsip.visible || 
+                        this.dialogDitindak.visible || 
+                        this.editPassword.visible ||
+                        this.dialog.visible;
+                },
+                listEmpty: function() {
+                    return this.pageList.item.length === 0;
+                },
+                listIsLoadable: function() {
+                    return this.pageList.page < this.pageList.maxPage;
+                }
+            },
+            filters: {
+                statusName: function(status) {
+                    if (status === 3) return 'Ditindaklanjuti dan diarsipkan';
+                    else if (status === 2) return 'Ditindaklanjuti';
+                    else if (status === 1) return 'Diarsipkan';
+                    else return 'Dalam proses';
+                },
+                prioritasClass: function(prioritas) {
+                    if (prioritas === 3) return 'rahasia';
+                    else if (prioritas === 2) return 'penting';
+                    else if (prioritas === 1) return 'segera';
+                    else return 'biasa';
+                },
+                dateFormat: function(src, srcFormat, resFormat) {
+                    return moment(src, srcFormat).format(resFormat);
+                },
+                replace: function(src, old, replacement) {
+                    return src.replace(old, replacement);
+                }
+            },
+            watch: {
+                'sidebar.selected': function() {
+                    this.pageList.page = 1;
+                    this.pageList.maxPage = 1;
+                    this.pageList.item = [];
+                    this.pageList.keyword = '';
+                    this.closePageDetail();
+
+                    var apiURL = '/api/surat';
+                    if (this.sidebar.selected === 5) apiURL = '/api/dosen';
+                    else if (this.sidebar.selected === 4) apiURL = '/api/account';
+                    else if (this.sidebar.selected === 3) apiURL = '/api/surat?ditindak';
+                    else if (this.sidebar.selected === 2) apiURL = '/api/surat?diarsip';
+                    else if (this.sidebar.selected === 1) apiURL = '/api/surat?diproses';
+
+                    axios(apiURL).then(function(response) {
+                        app.pageList.page = response.data.page;
+                        app.pageList.maxPage = response.data.maxPage;
+                        app.pageList.item = response.data.item;
+
+                        var listArea = document.getElementById('item-list-area');
+                        if (listArea.className.indexOf('ps-container') === -1) {
+                            Ps.initialize(listArea);
+                        } else {
+                            listArea.scrollTop = 0;
+                            Ps.update(listArea);
+                        }
+                    });
+                }
+            },
+            methods: {
+                statusClass: function(status) {
+                    if (status === 3) return 'ditindak-diarsip';
+                    else if (status === 2) return 'ditindak';
+                    else if (status === 1) return 'diarsip';
+                    else return 'diproses';
+                },
+                selectSidebar: function(value) {
+                    this.sidebar.selected = value;
+                },
+                showInputSurat: function() {
+                    this.inputSurat.visible = true;
+                    this.inputSurat.isNew = true;
+                    this.inputSurat.error.visible = false;
+                    this.inputSurat.field.nomor = '';
+                    this.inputSurat.field.perihal = '';
+                    this.inputSurat.field.sumber = '';
+                    this.inputSurat.field.tanggal = '';
+                    this.inputSurat.field.waktuTerima = '';
+                    this.inputSurat.field.prioritas = 0;
+
+                    this.$nextTick(function() {
+                        this.$refs.txtNomorSurat.focus();
+                    });
+                },
+                showEditSurat: function() {
+                    var tanggal = moment(this.pageDetail.surat.tanggal, 'YYYY-MM-DD').format('DD-MM-YYYY'),
+                        waktuTerima = moment(this.pageDetail.surat.waktuTerima, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm:ss');
+                    
+                    this.inputSurat.visible = true;
+                    this.inputSurat.isNew = false;
+                    this.inputSurat.error.visible = false;
+                    this.inputSurat.field.id = this.pageDetail.surat.id;
+                    this.inputSurat.field.nomor = this.pageDetail.surat.nomor;
+                    this.inputSurat.field.perihal = this.pageDetail.surat.perihal;
+                    this.inputSurat.field.sumber = this.pageDetail.surat.sumber;
+                    this.inputSurat.field.tanggal = tanggal;
+                    this.inputSurat.field.waktuTerima = waktuTerima.replace(' jam 00:00:00', '');
+                    this.inputSurat.field.prioritas = this.pageDetail.surat.prioritas;
+
+                    this.$nextTick(function() {
+                        this.$refs.txtNomorSurat.focus();
+                    });
+                },
+                showDeleteSurat: function() {
+                    var index = this.pageDetail.index,
+                        idSurat = this.pageDetail.surat.id,
+                        nomorSurat = this.pageDetail.surat.nomor;
+                    
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Hapus Surat';
+                    this.dialog.message = 'Yakin ingin menghapus data surat dengan nomor ' + nomorSurat + ' ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        axios.delete('/api/surat/' + idSurat)
+                            .then(function() {
+                                app.pageList.item.splice(index, 1);
+                                app.closePageDetail();
+                                app.closeDialog();
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.dialog.title = 'Error';
+                                app.dialog.message = 'Gagal menghapus data surat. ' + message;
+                                app.dialog.subCaption = '';
+                                app.dialog.mainCaption = 'OK';
+                                app.dialog.mainAction = app.closeDialog;
+
+                                return;
+                            });
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                showInputAkun: function() {
+                    this.inputAkun.visible = true;
+                    this.inputAkun.isNew = true;
+                    this.inputAkun.error.visible = false;
+                    this.inputAkun.field.nama = '';
+                    this.inputAkun.field.username = '';
+                    this.inputAkun.field.password = '';
+                    this.inputAkun.field.ulangPassword = '';
+                    this.inputAkun.field.admin = 0;
+
+                    this.$nextTick(function() {
+                        this.$refs.txtNamaAkun.focus();
+                    });
+                },
+                showEditAkun: function(akun, index) {
+                    this.inputAkun.visible = true;
+                    this.inputAkun.isNew = false;
+                    this.inputAkun.error.visible = false;
+                    this.inputAkun.field.id = akun.id;
+                    this.inputAkun.field.nama = akun.nama;
+                    this.inputAkun.field.username = akun.username;
+                    this.inputAkun.field.password = '';
+                    this.inputAkun.field.ulangPassword = '';
+                    this.inputAkun.field.admin = akun.admin;
+                    this.inputAkun.field.index = index;
+
+                    this.$nextTick(function() {
+                        this.$refs.txtNamaAkun.focus();
+                    });
+                },
+                showEditAkunAktif: function() {
+                    var akun = {
+                        id: this.sidebar.account.id,
+                        nama: this.sidebar.account.nama,
+                        username: this.sidebar.account.username,
+                        admin: this.sidebar.account.admin
+                    };
+                    
+                    this.showEditAkun(akun, -1);
+                },
+                showEditPassword: function() {
+                    this.editPassword.visible = true;
+                    this.editPassword.isNew = true;
+                    this.editPassword.error.visible = false;
+                    this.editPassword.field.id = this.sidebar.account.id;
+                    this.editPassword.field.passwordLama = '';
+                    this.editPassword.field.password = '';
+                    this.editPassword.field.ulangPassword = '';
+
+                    this.$nextTick(function() {
+                        this.$refs.txtPasswordLama.focus();
+                    });
+                },
+                showDeleteAkun: function(akun, index) {
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Hapus Akun';
+                    this.dialog.message = 'Yakin ingin menghapus data akun dengan nama ' + akun.nama + ' ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        axios.delete('/api/account/' + akun.id)
+                            .then(function() {
+                                app.pageList.item.splice(index, 1);
+                                app.closeDialog();
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.dialog.title = 'Error';
+                                app.dialog.message = 'Gagal menghapus data akun. ' + message;
+                                app.dialog.subCaption = '';
+                                app.dialog.mainCaption = 'OK';
+                                app.dialog.mainAction = app.closeDialog;
+
+                                return;
+                            });
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                showInputDosen: function() {
+                    this.inputDosen.visible = true;
+                    this.inputDosen.isNew = true;
+                    this.inputDosen.error.visible = false;
+                    this.inputDosen.field.nama = '';
+                    this.inputDosen.field.jabatan = '';
+
+                    this.$nextTick(function() {
+                        this.$refs.txtNamaDosen.focus();
+                    });
+                },
+                showEditDosen: function(dosen, index) {
+                    this.inputDosen.visible = true;
+                    this.inputDosen.isNew = false;
+                    this.inputDosen.error.visible = false;
+                    this.inputDosen.field.id = dosen.id;
+                    this.inputDosen.field.nama = dosen.nama;
+                    this.inputDosen.field.jabatan = dosen.jabatan;
+                    this.inputDosen.field.index = index;
+
+                    this.$nextTick(function() {
+                        this.$refs.txtNamaDosen.focus();
+                    });
+                },
+                showDeleteDosen: function(dosen, index) {
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Hapus Dosen';
+                    this.dialog.message = 'Yakin ingin menghapus data dosen dengan nama ' + dosen.nama + ' ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        axios.delete('/api/dosen/' + dosen.id)
+                            .then(function() {
+                                app.pageList.item.splice(index, 1);
+                                app.closeDialog();
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.dialog.title = 'Error';
+                                app.dialog.message = 'Gagal menghapus data dosen. ' + message;
+                                app.dialog.subCaption = '';
+                                app.dialog.mainCaption = 'OK';
+                                app.dialog.mainAction = app.closeDialog;
+
+                                return;
+                            });
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                showDialogDisposisi: function(parent) {
+                    this.dialogDisposisi.visible = true;
+                    this.dialogDisposisi.error.visible = false;
+                    this.dialogDisposisi.field.parentId = parseInt(parent, 10) | 0;
+                    this.dialogDisposisi.field.targetId = 0;
+                    this.dialogDisposisi.field.target = '';
+                    this.dialogDisposisi.field.waktu = '';
+
+                    this.$nextTick(function() {
+                        this.$refs.txtNamaDosen.focus();
+                    });
+                },
+                showDialogDiarsip: function(id) {
+                    this.dialogDiarsip.visible = true;
+                    this.dialogDiarsip.error.visible = false;
+                    this.dialogDiarsip.field.id = parseInt(id, 10) | 0;
+                    this.dialogDiarsip.field.waktu = '';
+
+                    this.$nextTick(function() {
+                        this.$refs.txtWaktuDiarsip.focus();
+                    });
+                },
+                showDialogDitindak: function(id) {
+                    this.dialogDitindak.visible = true;
+                    this.dialogDitindak.error.visible = false;
+                    this.dialogDitindak.field.id = parseInt(id, 10) | 0;
+                    this.dialogDitindak.field.waktu = '';
+
+                    this.$nextTick(function() {
+                        this.$refs.txtWaktuDitindak.focus();
+                    });
+                },
+                showDialogLogout: function() {
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Log Out';
+                    this.dialog.message = 'Yakin ingin log out dari aplikasi ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        Cookies.remove('token');
+                        location.href = '/login';
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                closeDisposisiSuggestion: function() {
+                    if (this.dialogDisposisi.suggestion.visible) {
+                        this.dialogDisposisi.suggestion.visible = false;
+                        this.dialogDisposisi.suggestion.item = [];
+                    }
+                },
+                selectDisposisiSuggestion: function(idx) {
+                    var index = parseInt(idx, 10) | 0,
+                        dosen = this.dialogDisposisi.suggestion.item[index];
+                    
+                    this.dialogDisposisi.field.targetId = dosen.id;
+                    this.dialogDisposisi.field.target = dosen.nama;
+
+                    this.$refs.txtWaktuDisposisi.focus();
+                },
+                focusDisposisiSuggestion: function(idx) {
+                    if (idx < 0 || idx >= this.$refs.disposisiSuggestionItem.length) return;
+                    this.$refs.disposisiSuggestionItem[idx].focus();
+                },
+                closeDialog: function() {
+                    if (this.dialogDisposisi.visible && this.dialogDisposisi.suggestion.visible) {
+                        this.dialogDisposisi.suggestion.visible = false;
+                        this.dialogDisposisi.suggestion.item = [];
+                        return;
+                    }
+                    
+                    this.inputSurat.visible = false;
+                    this.inputAkun.visible = false;
+                    this.inputDosen.visible = false;
+                    this.dialogDisposisi.visible = false;
+                    this.dialogDiarsip.visible = false;
+                    this.dialogDitindak.visible = false;
+                    this.editPassword.visible = false;
+                    this.dialog.visible = false;
+                },
+                simpanSurat: function() {
+                    // Validate input
+                    if (this.inputSurat.field.nomor === '') {
+                        this.inputSurat.error.visible = true;
+                        this.inputSurat.error.message = 'Nomor surat harus diisi';
+                        return;
+                    }
+
+                    if (this.inputSurat.field.perihal === '') {
+                        this.inputSurat.error.visible = true;
+                        this.inputSurat.error.message = 'Perihal surat harus diisi';
+                        return;
+                    }
+
+                    if (this.inputSurat.field.sumber === '') {
+                        this.inputSurat.error.visible = true;
+                        this.inputSurat.error.message = 'Sumber surat harus diisi';
+                        return;
+                    }
+
+                    var tanggalSurat = moment(this.inputSurat.field.tanggal, 'DD-MM-YYYY');
+                    if (!tanggalSurat.isValid()) {
+                        this.inputSurat.error.visible = true;
+                        this.inputSurat.error.message = 'Tanggal surat harus format tanggal/bulan/tahun';
+                        return;
+                    }
+
+                    var waktuTerima = moment(this.inputSurat.field.waktuTerima, 'DD-MM-YYYY HH:mm:ss');
+                    if (!waktuTerima.isValid()) {
+                        this.inputSurat.error.visible = true;
+                        this.inputSurat.error.message = 'Waktu terima surat harus format tanggal/bulan/tahun jam:menit:detik';
+                        return;
+                    }
+
+                    // Show dialog confirmation
+                    this.inputSurat.visible = false;
+                    this.dialog.visible = true;
+                    this.dialog.title = this.inputSurat.isNew ? 'Surat Baru' : 'Edit Surat';
+                    this.dialog.message = this.inputSurat.isNew ? 'Yakin ingin menyimpan surat baru ?' : 'Yakin ingin memperbarui data surat ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.inputSurat.visible = true;
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        var method = app.inputSurat.isNew ? 'post' : 'put';
+                        tanggalSurat = tanggalSurat.format('YYYY-MM-DD');
+                        waktuTerima = waktuTerima.format('YYYY-MM-DD HH:mm:ss');
+                        
+                        axios({
+                                method: method,
+                                url: '/api/surat',
+                                data: {
+                                    id: app.inputSurat.field.id,
+                                    nomor: app.inputSurat.field.nomor,
+                                    perihal: app.inputSurat.field.perihal,
+                                    sumber: app.inputSurat.field.sumber,
+                                    tanggal: tanggalSurat,
+                                    waktuTerima: waktuTerima,
+                                    prioritas: parseInt(app.inputSurat.field.prioritas, 10) | 0
+                                }
+                            })
+                            .then(function() {
+                                if (!app.inputSurat.isNew) {
+                                    var index = app.pageDetail.index;
+                                    
+                                    app.pageList.item[index].nomor = app.inputSurat.field.nomor;
+                                    app.pageList.item[index].perihal = app.inputSurat.field.perihal;
+                                    app.pageList.item[index].sumber = app.inputSurat.field.sumber;
+                                    app.pageList.item[index].tanggal = tanggalSurat;
+                                    app.pageList.item[index].waktuTerima = waktuTerima;
+                                    app.pageList.item[index].prioritas = parseInt(app.inputSurat.field.prioritas, 10) | 0;
+                                    
+                                    app.pageDetail.surat.nomor = app.inputSurat.field.nomor;
+                                    app.pageDetail.surat.perihal = app.inputSurat.field.perihal;
+                                    app.pageDetail.surat.sumber = app.inputSurat.field.sumber;
+                                    app.pageDetail.surat.tanggal = tanggalSurat;
+                                    app.pageDetail.surat.waktuTerima = waktuTerima;
+                                    app.pageDetail.surat.prioritas = parseInt(app.inputSurat.field.prioritas, 10) | 0;
+
+                                    app.closeDialog();
+                                    return;
+                                }
+
+                                axios('/api/surat').then(function(response) {
+                                    app.pageList.page = response.data.page;
+                                    app.pageList.maxPage = response.data.maxPage;
+                                    app.pageList.item = response.data.item;
+                                    app.closeDialog();
+
+                                    var listArea = document.getElementById('item-list-area');
+                                    Ps.initialize(listArea);
+                                });
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.inputSurat.visible = true;
+                                app.dialog.visible = false;
+                                app.inputSurat.error.visible = true;
+                                app.inputSurat.error.message = message;
+
+                                return;
+                            });
+                    };
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                simpanAkun: function() {
+                    // Validate input
+                    if (this.inputAkun.field.nama === '') {
+                        this.inputAkun.error.visible = true;
+                        this.inputAkun.error.message = 'Nama harus diisi';
+                        return;
+                    }
+
+                    if (this.inputAkun.field.username === '') {
+                        this.inputAkun.error.visible = true;
+                        this.inputAkun.error.message = 'Username harus diisi';
+                        return;
+                    }
+
+                    if (this.inputAkun.isNew && this.inputAkun.field.password === '') {
+                        this.inputAkun.error.visible = true;
+                        this.inputAkun.error.message = 'Password harus diisi';
+                        return;
+                    }
+
+                    if (this.inputAkun.isNew && this.inputAkun.field.ulangPassword !== this.inputAkun.field.password) {
+                        this.inputAkun.error.visible = true;
+                        this.inputAkun.error.message = 'Password yang diulang tidak cocok';
+                        return;
+                    }
+
+                    // Show dialog confirmation
+                    var dialogMessage = this.inputAkun.isNew ? 'Yakin ingin menyimpan data akun baru ?' : 'Yakin ingin memperbarui data akun ?';
+                    if (this.inputAkun.field.id === this.sidebar.account.id) {
+                        dialogMessage += ' Setelah edit dilakukan, anda harus login kembali.';
+                        this.inputAkun.field.index = -1;
+                    }
+                    
+                    this.inputAkun.visible = false;
+                    this.dialog.visible = true;
+                    this.dialog.title = this.inputAkun.isNew ? 'Akun Baru' : 'Edit Akun';
+                    this.dialog.message = dialogMessage;
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.inputAkun.visible = true;
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        var method = app.inputAkun.isNew ? 'post' : 'put';
+                        axios({
+                                method: method,
+                                url: '/api/account',
+                                data: {
+                                    id: app.inputAkun.field.id,
+                                    nama: app.inputAkun.field.nama,
+                                    password: app.inputAkun.field.password,
+                                    username: app.inputAkun.field.username,
+                                    admin: parseInt(app.inputAkun.field.admin, 10) | 0
+                                }
+                            })
+                            .then(function() {
+                                if (!app.inputAkun.isNew) {
+                                    var index = app.inputAkun.field.index;
+                                    
+                                    if (index === -1) {
+                                        Cookies.remove('token');
+                                        location.href = '/login';
+                                        return;
+                                    }
+                                    
+                                    app.pageList.item[index].nama = app.inputAkun.field.nama;
+                                    app.pageList.item[index].username = app.inputAkun.field.username;
+                                    app.pageList.item[index].admin = parseInt(app.inputAkun.field.admin, 10) | 0;
+
+                                    app.closeDialog();
+                                    return;
+                                }
+
+                                axios('/api/account').then(function(response) {
+                                    app.pageList.page = response.data.page;
+                                    app.pageList.maxPage = response.data.maxPage;
+                                    app.pageList.item = response.data.item;
+                                    app.closeDialog();
+
+                                    var listArea = document.getElementById('item-list-area');
+                                    Ps.initialize(listArea);
+                                });
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.inputAkun.visible = true;
+                                app.dialog.visible = false;
+                                app.inputAkun.error.visible = true;
+                                app.inputAkun.error.message = message;
+
+                                return;
+                            });
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                simpanDosen: function() {
+                    // Validate input
+                    if (this.inputDosen.field.nama === '') {
+                        this.inputDosen.error.visible = true;
+                        this.inputDosen.error.message = 'Nama harus diisi';
+                        return;
+                    }
+
+                    if (this.inputDosen.field.jabatan === '') {
+                        this.inputDosen.error.visible = true;
+                        this.inputDosen.error.message = 'Jabatan harus diisi';
+                        return;
+                    }
+
+                    // Show dialog confirmation
+                    this.inputDosen.visible = false;
+                    this.dialog.visible = true;
+                    this.dialog.title = this.inputDosen.isNew ? 'Dosen Baru' : 'Edit Dosen';
+                    this.dialog.message = this.inputDosen.isNew ? 'Yakin ingin menyimpan data dosen baru ?' : 'Yakin ingin memperbarui data dosen ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.inputDosen.visible = true;
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        var method = app.inputDosen.isNew ? 'post' : 'put';
+                        axios({
+                                method: method,
+                                url: '/api/dosen',
+                                data: {
+                                    id: app.inputDosen.field.id,
+                                    nama: app.inputDosen.field.nama,
+                                    jabatan: app.inputDosen.field.jabatan
+                                }
+                            })
+                            .then(function() {
+                                if (!app.inputDosen.isNew) {
+                                    var index = app.inputDosen.field.index;
+                                    app.pageList.item[index].nama = app.inputDosen.field.nama;
+                                    app.pageList.item[index].jabatan = app.inputDosen.field.jabatan;
+
+                                    app.closeDialog();
+                                    return;
+                                }
+
+                                axios('/api/dosen').then(function(response) {
+                                    app.pageList.page = response.data.page;
+                                    app.pageList.maxPage = response.data.maxPage;
+                                    app.pageList.item = response.data.item;
+                                    app.closeDialog();
+
+                                    var listArea = document.getElementById('item-list-area');
+                                    Ps.initialize(listArea);
+                                });
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.inputDosen.visible = true;
+                                app.dialog.visible = false;
+                                app.inputDosen.error.visible = true;
+                                app.inputDosen.error.message = message;
+
+                                return;
+                            });
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                simpanDisposisi: function() {
+                    // Validate input
+                    if (this.dialogDisposisi.field.targetId === 0) {
+                        this.dialogDisposisi.error.visible = true;
+                        this.dialogDisposisi.error.message = 'Dosen tujuan disposisi harus dipilih dari daftar yang tersedia';
+                        return;
+                    }
+
+                    var waktuDisposisi = moment(this.dialogDisposisi.field.waktu, 'DD-MM-YYYY HH:mm:ss');
+                    if (!waktuDisposisi.isValid()) {
+                        this.dialogDisposisi.error.visible = true;
+                        this.dialogDisposisi.error.message = 'Waktu disposisi harus format tanggal/bulan/tahun jam:menit:detik';
+                        return;
+                    }
+
+                    // Show dialog confirmation
+                    this.dialogDisposisi.visible = false;
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Disposisi Surat';
+                    this.dialog.message = 'Yakin ingin menyimpan data disposisi ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialogDisposisi.visible = true;
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        var suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
+                        
+                        axios.post('/api/disposisi', {
+                            suratId: suratId,
+                            parentId: app.dialogDisposisi.field.parentId,
+                            targetId: app.dialogDisposisi.field.targetId,
+                            modified: waktuDisposisi.format('YYYY-MM-DD HH:mm:ss')
+                        })
+                            .then(function() {
+                                axios('/api/surat/' + suratId).then(function(response) {
+                                    app.setDetailSurat(response.data);
+                                    app.closeDialog();
+            
+                                    app.$nextTick(function() {
+                                        var detailArea = document.getElementById('detail-content');
+                                        Ps.initialize(detailArea);
+                                    });
+                                });
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.dialogDisposisi.visible = true;
+                                app.dialog.visible = false;
+                                app.dialogDisposisi.error.visible = true;
+                                app.dialogDisposisi.error.message = message;
+
+                                return;
+                            });
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                simpanDiarsip: function() {
+                    // Validate input
+                    var waktu = moment(this.dialogDiarsip.field.waktu, 'DD-MM-YYYY HH:mm:ss');
+                    if (!waktu.isValid()) {
+                        this.dialogDiarsip.error.visible = true;
+                        this.dialogDiarsip.error.message = 'Waktu pengarsipan harus format tanggal/bulan/tahun jam:menit:detik';
+                        return;
+                    }
+
+                    // Show dialog confirmation
+                    this.dialogDiarsip.visible = false;
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Arsipkan Surat';
+                    this.dialog.message = 'Yakin ingin menyimpan data pengarsipan surat ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialogDiarsip.visible = true;
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        var id = app.dialogDiarsip.field.id,
+                            suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
+                        
+                        axios.post('/api/diarsip', {
+                            id: id,
+                            suratId: suratId,
+                            modified: waktu.format('YYYY-MM-DD HH:mm:ss')
+                        })
+                            .then(function() {
+                                axios('/api/surat/' + suratId).then(function(response) {
+                                    app.setDetailSurat(response.data);
+                                    app.closeDialog();
+            
+                                    app.$nextTick(function() {
+                                        var detailArea = document.getElementById('detail-content');
+                                        Ps.initialize(detailArea);
+                                    });
+                                });
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.dialogDiarsip.visible = true;
+                                app.dialog.visible = false;
+                                app.dialogDiarsip.error.visible = true;
+                                app.dialogDiarsip.error.message = message;
+
+                                return;
+                            });
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                simpanDitindak: function() {
+                    // Validate input
+                    var waktu = moment(this.dialogDitindak.field.waktu, 'DD-MM-YYYY HH:mm:ss');
+                    if (!waktu.isValid()) {
+                        this.dialogDitindak.error.visible = true;
+                        this.dialogDitindak.error.message = 'Waktu ditindaklanjuti harus format tanggal/bulan/tahun jam:menit:detik';
+                        return;
+                    }
+
+                    // Show dialog confirmation
+                    this.dialogDitindak.visible = false;
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Tindaklanjuti Surat';
+                    this.dialog.message = 'Yakin ingin menyimpan data surat ditindaklanjuti ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialogDitindak.visible = true;
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        var id = app.dialogDitindak.field.id,
+                            suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
+                        
+                        axios.post('/api/ditindak', {
+                            id: id,
+                            suratId: suratId,
+                            modified: waktu.format('YYYY-MM-DD HH:mm:ss')
+                        })
+                            .then(function() {
+                                axios('/api/surat/' + suratId).then(function(response) {
+                                    app.setDetailSurat(response.data);
+                                    app.closeDialog();
+            
+                                    app.$nextTick(function() {
+                                        var detailArea = document.getElementById('detail-content');
+                                        Ps.initialize(detailArea);
+                                    });
+                                });
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.dialogDitindak.visible = true;
+                                app.dialog.visible = false;
+                                app.dialogDitindak.error.visible = true;
+                                app.dialogDitindak.error.message = message;
+
+                                return;
+                            });
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                simpanPassword: function() {
+                    // Validate input
+                    if (this.editPassword.field.password === '') {
+                        this.editPassword.error.visible = true;
+                        this.editPassword.error.message = 'Password baru harus diisi';
+                        return;
+                    }
+
+                    if (this.editPassword.field.ulangPassword !== this.editPassword.field.password) {
+                        this.editPassword.error.visible = true;
+                        this.editPassword.error.message = 'Password yang diulang tidak cocok';
+                        return;
+                    }
+
+                    // Show dialog confirmation
+                    this.editPassword.visible = false;
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Ubah Password';
+                    this.dialog.message = 'Yakin ingin mengubah password ? Setelah selesai, anda harus login kembali.';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.editPassword.visible = true;
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        axios.post('/api/account/password', {
+                            id: app.editPassword.field.id,
+                            passwordLama: app.editPassword.field.passwordLama,
+                            password: app.editPassword.field.password
+                        })
+                            .then(function() {
+                                Cookies.remove('token');
+                                location.href = '/login';
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.editPassword.visible = true;
+                                app.dialog.visible = false;
+                                app.editPassword.error.visible = true;
+                                app.editPassword.error.message = message;
+
+                                return;
+                            });
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
+                selectSurat: function(id, idx) {
+                    if (id === this.pageList.selected) {
+                        return;
+                    }
+
+                    this.pageList.selected = id;
+                    this.pageDetail.index = idx;
+
+                    axios('/api/surat/' + id).then(function(response) {
+                        app.pageDetail.visible = true;
+                        app.setDetailSurat(response.data);
+
+                        app.$nextTick(function() {
+                            var detailArea = document.getElementById('detail-content');
+                            if (detailArea.className.indexOf('ps-container') === -1) {
+                                Ps.initialize(detailArea);
+                            } else {
+                                detailArea.scrollTop = 0;
+                                Ps.update(detailArea);
+                            }
+                        });
+                    });
+                },
+                setDetailSurat: function(data) {
+                    app.pageDetail.surat.id = data.surat.id;
+                    app.pageDetail.surat.nomor = data.surat.nomor;
+                    app.pageDetail.surat.perihal = data.surat.perihal;
+                    app.pageDetail.surat.sumber = data.surat.sumber;
+                    app.pageDetail.surat.tanggal = data.surat.tanggal;
+                    app.pageDetail.surat.waktuTerima = data.surat.waktuTerima;
+                    app.pageDetail.surat.prioritas = data.surat.prioritas;
+                    app.pageDetail.surat.status = data.surat.status;
+                    app.pageDetail.timeline = data.timeline;
+                },
+                closePageDetail: function() {
+                    this.pageList.selected = '';
+                    this.pageDetail.visible = false;
+                },
+                getDosenSuggestion: _.debounce(function(e) {
+                    var value = e.target.value.trim();
+                    this.dialogDisposisi.field.target = value;
+
+                    if (value === '') {
+                        this.dialogDisposisi.suggestion.visible = false;
+                        this.dialogDisposisi.suggestion.item = [];
+                        return;
+                    }
+
+                    axios('/api/dosen?keyword=' + encodeURI(value)).then(function(response) {
+                        app.dialogDisposisi.suggestion.visible = true;
+                        app.dialogDisposisi.suggestion.item = response.data.item;
+                    });
+                }, 300),
+                filterPageList: _.debounce(function(e) {
+                    var value = e.target.value.trim(),
+                        keyword = encodeURI(value);
+                    
+                    this.pageList.page = 1;
+                    this.pageList.maxPage = 1;
+                    this.pageList.keyword = value;
+                    this.pageList.item = [];
+                    
+                    var apiURL = '/api/surat?';
+                    if (this.sidebar.selected === 5) apiURL = '/api/dosen?';
+                    else if (this.sidebar.selected === 4) apiURL = '/api/account?';
+                    else if (this.sidebar.selected === 3) apiURL = '/api/surat?ditindak';
+                    else if (this.sidebar.selected === 2) apiURL = '/api/surat?diarsip';
+                    else if (this.sidebar.selected === 1) apiURL = '/api/surat?diproses';
+                    
+                    apiURL += '&keyword=' + keyword;
+                    axios(apiURL).then(function(response) {
+                        app.pageList.page = response.data.page;
+                        app.pageList.maxPage = response.data.maxPage;
+                        app.pageList.item = response.data.item;
+
+                        var listArea = document.getElementById('item-list-area');
+                        if (listArea.className.indexOf('ps-container') === -1) {
+                            Ps.initialize(listArea);
+                        } else {
+                            listArea.scrollTop = 0;
+                            Ps.update(listArea);
+                        }
+                    });
+                }, 300),
+                loadMore: function() {
+                    var nextPage = this.pageList.page + 1,
+                        keyword = encodeURI(this.pageList.keyword),
+                        apiURL = '/api/surat?';
+
+                    if (this.sidebar.selected === 5) apiURL = '/api/dosen?';
+                    else if (this.sidebar.selected === 4) apiURL = '/api/account?';
+                    else if (this.sidebar.selected === 3) apiURL = '/api/surat?ditindak';
+                    else if (this.sidebar.selected === 2) apiURL = '/api/surat?diarsip';
+                    else if (this.sidebar.selected === 1) apiURL = '/api/surat?diproses';
+
+                    apiURL += '&page=' + nextPage;
+                    apiURL += '&keyword=' + keyword;
+
+                    axios(apiURL).then(function(response) {
+                        app.pageList.page = response.data.page;
+                        app.pageList.maxPage = response.data.maxPage;
+                        app.pageList.item.push.apply(response.data.item);
+
+                        var listArea = document.getElementById('item-list-area');
+                        listArea.scrollTop = 0;
+                        Ps.update(listArea);
+                    });
+                }
+            }
+        });
+
+        document.getElementById('app').removeAttribute('style');
+        
+        window.onbeforeunload = function() {
+            Cookies.remove('token');
+            axios.post('/api/exit', {});
+        };
+
+        axios('/api/surat').then(function(response) {
+            app.pageList.page = response.data.page;
+            app.pageList.maxPage = response.data.maxPage;
+            app.pageList.item = response.data.item;
+            var listArea = document.getElementById('item-list-area');
+            Ps.initialize(listArea);
+        });
+    </script>
+</body>
+
+</html>

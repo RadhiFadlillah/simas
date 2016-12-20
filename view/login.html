@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Login - SIMAS - Sistem Manajemen Surat</title>
+
+    <!-- Meta -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Favicon -->
+    <link rel="apple-touch-icon-precomposed" sizes="57x57" href="/res/apple-touch-icon-57x57.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/res/apple-touch-icon-114x114.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/res/apple-touch-icon-72x72.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/res/apple-touch-icon-144x144.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="120x120" href="/res/apple-touch-icon-120x120.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="/res/apple-touch-icon-152x152.png" />
+    <link rel="icon" type="image/png" href="/res/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/res/favicon-16x16.png" sizes="16x16" />
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/style/css/perfect-scrollbar.css">
+    <link rel="stylesheet" href="/style/css/source-sans-pro.css">
+    <link rel="stylesheet" href="/style/css/font-awesome.css">
+    <link rel="stylesheet" href="/style/css/stylesheet.css">
+
+    <!-- Javascript -->
+    <script src="/style/js/vue.js"></script>
+    <script src="/style/js/axios.js"></script>
+    <script src="/style/js/moment.js"></script>
+    <script src="/style/js/js-cookie.js"></script>
+    <script src="/style/js/perfect-scrollbar.js"></script>
+</head>
+
+<body>
+    <div id="app" class="login" style="display: none">
+        <div id="container">
+            <div id="header">
+                <img src="/res/logo.svg">
+                <p>Sistem Manajemen Surat</p>
+            </div>
+            <div id="content">
+                <p class="error-message" v-if="error.visible">{{error.message}}</p>
+                <div class="field">
+                    <label><i class="fa fa-fw fa-user" aria-hidden="true"></i></label>
+                    <input tabindex="1" v-model.trim="username" @keyup.enter="submitLogin" type="text" placeholder="Username">
+                </div>
+                <div class="field">
+                    <label><i class="fa fa-fw fa-lock" aria-hidden="true"></i></label>
+                    <input tabindex="2" v-model.trim="password" @keyup.enter="submitLogin" type="password" placeholder="Password">
+                </div>
+                <a id="btn-login" @click="submitLogin" @keyup.enter="submitLogin" tabindex="3">Masuk<i class="fa fa-sign-in" aria-hidden="true"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var exitOnUnload = true,
+            app = new Vue({
+            el: '#app',
+            data: {
+                username: '',
+                password: '',
+                error: {
+                    visible: false,
+                    message: ''
+                }
+            },
+            methods: {
+                submitLogin: function() {
+                    // Hide error
+                    this.error.visible = false;
+
+                    // Check if username and password empty
+                    if (this.username === '' || this.password === '') {
+                        this.error.visible = true;
+                        this.error.message = 'Username dan password harus diisi';
+                        return;
+                    }
+
+                    // Send login request
+                    axios.post('/api/login', {
+                            username: this.username,
+                            password: this.password
+                        })
+                        .then(function(response) {
+                            Cookies.set('token', response.data, {
+                                expires: moment().endOf('day').toDate()
+                            });
+
+                            exitOnUnload = false;
+                            location.href = '/';
+                        })
+                        .catch(function(error) {
+                            var message;
+                            if (error.response) message = error.response.data;
+                            else message = error.message;
+
+                            app.error.visible = true;
+                            app.error.message = message;
+
+                            return;
+                        });
+                }
+            }
+        });
+
+        document.getElementById('app').removeAttribute('style');
+
+        window.onbeforeunload = function() {
+            if (exitOnUnload) {
+                Cookies.remove('token');
+                axios.post('/api/exit', {});
+            }
+        };
+
+    </script>
+</body>
+
+</html>
