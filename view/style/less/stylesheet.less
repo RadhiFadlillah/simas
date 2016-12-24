@@ -28,6 +28,19 @@ input {
     user-select: text;
 }
 
+.spacer {
+    flex: 1;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 #app {
     height: 100vh;
     display: flex;
@@ -100,9 +113,9 @@ input {
                 }
             }
             #btn-login {
-                margin: 16px;
+                margin: 16px 16px 0;
                 padding: 16px 32px;
-                align-self: center;
+                text-align: center;
                 text-transform: uppercase;
                 color: white;
                 font-weight: 600;
@@ -114,6 +127,58 @@ input {
                 &:hover,
                 &:focus {
                     background-color: @accent-dark;
+                }
+                &.loading {
+                    color: transparent;
+                    position: relative;
+                    cursor: default !important;
+                    &::after {
+                        width: 30px;
+                        line-height: 30px;
+                        color: white;
+                        content: @icon-loading;
+                        text-align: center;
+                        font-size: 1.1em;
+                        font-family: 'FontAwesome';
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        margin-top: -15px;
+                        margin-left: -15px;
+                        animation: spin 2s linear infinite;
+                    }
+                    &:hover,
+                    &:focus {
+                        background-color: @accent;
+                    }
+                }
+            }
+            .field-setting {
+                color: @font-light;
+                display: flex;
+                flex-flow: row nowrap;
+                font-size: @font-size;
+                margin: 16px;
+                align-items: center;
+                .check-area {
+                    display: flex;
+                    flex-flow: row nowrap;
+                    align-items: center;
+                    label {
+                        cursor: pointer;
+                        margin-left: 8px;
+                    }
+                    input:hover+label,
+                    input:focus+label,
+                    input:active+label {
+                        color: @font;
+                        text-decoration: underline;
+                    }
+                }
+                >a:hover,
+                >a:focus {
+                    color: @font;
+                    text-decoration: underline;
                 }
             }
         }
@@ -181,9 +246,6 @@ input {
             display: block;
             flex-shrink: 0;
         }
-        .spacer {
-            flex: 1;
-        }
         #user-area {
             display: flex;
             flex-flow: column nowrap;
@@ -191,7 +253,7 @@ input {
             background-color: @main-dark;
             font-size: @font-size;
             flex-shrink: 0;
-            > p {
+            >p {
                 display: block;
                 text-align: center;
                 padding: 8px 16px;
@@ -205,7 +267,8 @@ input {
                     display: block;
                     text-align: center;
                     padding: 8px;
-                    &:hover, &:focus {
+                    &:hover,
+                    &:focus {
                         color: white;
                         background-color: rgba(255, 255, 255, 0.05);
                     }
@@ -347,7 +410,6 @@ input {
                     cursor: default;
                     padding-right: 78px;
                     .main-caption {
-                        margin-top: 0;
                         &.admin::after {
                             font-family: 'FontAwesome';
                             margin-left: 8px;
@@ -356,23 +418,9 @@ input {
                             color: @admin;
                         }
                     }
-                    .info {
-                        font-weight: 600;
-                    }
-                    &:hover,
-                    &:focus {
-                        padding-left: 16px;
-                        border-left: 0;
-                    }
-                }
-                .dosen-item {
-                    cursor: default;
-                    padding-right: 78px;
-                    .main-caption {
-                        margin-top: 0;
-                    }
-                    .info {
-                        font-weight: 600;
+                    .info span::before {
+                        content: '-';
+                        margin: 0 6px;
                     }
                     &:hover,
                     &:focus {
@@ -530,7 +578,7 @@ input {
                             &.diproses::after,
                             &.diarsip::after,
                             &.ditindak::after,
-                            &.ditindak-diarsip::after{
+                            &.ditindak-diarsip::after {
                                 margin-left: 8px;
                                 font-family: 'FontAwesome';
                             }
@@ -553,7 +601,7 @@ input {
                         }
                     }
                 }
-                > .timeline {
+                >.timeline {
                     padding-bottom: 40px;
                 }
                 .timeline {
@@ -823,7 +871,7 @@ input {
                 z-index: 99;
                 background-color: white;
                 border: 1px solid @border-dark;
-                box-shadow: 0 0 10px 0 rgba(10,10,10,0.1);
+                box-shadow: 0 0 10px 0 rgba(10, 10, 10, 0.1);
                 .suggestion-item {
                     padding: 8px 16px;
                     display: flex;
@@ -837,7 +885,8 @@ input {
                     &:not(:last-child) {
                         border-bottom: 1px solid @border-dark;
                     }
-                    &:hover, &:focus {
+                    &:hover,
+                    &:focus {
                         background-color: @bg;
                     }
                 }
@@ -861,21 +910,52 @@ input {
                         background-color: @bg;
                     }
                 }
+                &.loading {
+                    a {
+                        cursor: default !important;
+                        &:hover,
+                        &:focus {
+                            background-color: transparent;
+                        }
+                        &:not(.main-button) {
+                            display: none;
+                        }
+                        &.main-button {
+                            display: block;
+                            color: transparent;
+                            position: relative;
+                            &::after {
+                                width: 30px;
+                                line-height: 30px;
+                                color: @accent;
+                                content: @icon-loading;
+                                text-align: center;
+                                font-family: 'FontAwesome';
+                                position: absolute;
+                                top: 50%;
+                                left: 50%;
+                                margin-top: -15px;
+                                margin-left: -15px;
+                                animation: spin 2s linear infinite;
+                            }
+                        }
+                    }
+                }
             }
         }
-        #dialog-input-surat .field > label {
+        #dialog-input-surat .field>label {
             width: 140px;
         }
-        #dialog-input-akun .field > label {
+        #dialog-input-akun .field>label {
             width: 148px;
         }
-        #dialog-input-dosen .field > label {
+        #dialog-input-dosen .field>label {
             width: 100px;
         }
-        #dialog-disposisi .field > label {
+        #dialog-disposisi .field>label {
             width: 130px;
         }
-        #dialog-diarsip .field > label {
+        #dialog-diarsip .field>label {
             width: 90px;
         }
         #dialog-message {
