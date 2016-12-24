@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"simas/handler"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -30,8 +31,19 @@ func NewBackEnd(port int) BackEnd {
 }
 
 func (backend *BackEnd) ServeApp() {
+	// Create handler
+	hdl := handler.Handler{
+		DB: backend.DB,
+	}
+
 	// Create router
 	router := httprouter.New()
+
+	// Handle path to UI
+	router.GET("/res/*filepath", hdl.ServeFile)
+	router.GET("/style/*filepath", hdl.ServeFile)
+	router.GET("/", hdl.ServeIndexPage)
+	router.GET("/login", hdl.ServeLoginPage)
 
 	// Set panic handler
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, arg interface{}) {

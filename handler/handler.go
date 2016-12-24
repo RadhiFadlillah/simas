@@ -4,12 +4,16 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jmoiron/sqlx"
 )
 
-const tokenSecret string = "mxGXCGMKuaewWjfUQbtJ6vYdHJVLkUUej2YsUnKJhMM4PTqcrvjHb7T27iAsFj4S"
+const (
+	viewDir     string = "./view"
+	tokenSecret string = "mxGXCGMKuaewWjfUQbtJ6vYdHJVLkUUej2YsUnKJhMM4PTqcrvjHb7T27iAsFj4S"
+)
 
 type Handler struct {
 	DB *sqlx.DB
@@ -53,4 +57,8 @@ func checkError(err error) {
 	if err != nil && err != sql.ErrNoRows {
 		panic(err)
 	}
+}
+
+func delay() {
+	time.Sleep(2000 * time.Millisecond)
 }
