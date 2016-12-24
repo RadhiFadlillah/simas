@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	portNumber = flag.Int("p", 8080, "Port yang digunakan oleh aplikasi")
+	portNumber = flag.Int("p", 8081, "Port yang digunakan oleh aplikasi")
 )
 
 func main() {
