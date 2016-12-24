@@ -3,6 +3,7 @@ package handler
 import (
 	"database/sql"
 	"errors"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -13,7 +14,12 @@ import (
 const (
 	viewDir     string = "./view"
 	tokenSecret string = "mxGXCGMKuaewWjfUQbtJ6vYdHJVLkUUej2YsUnKJhMM4PTqcrvjHb7T27iAsFj4S"
+	letters     string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 type Handler struct {
 	DB *sqlx.DB
@@ -51,6 +57,15 @@ func redirectPage(w http.ResponseWriter, r *http.Request, url string) {
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 	http.Redirect(w, r, url, 301)
+}
+
+func randomString(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+
+	return string(b)
 }
 
 func checkError(err error) {

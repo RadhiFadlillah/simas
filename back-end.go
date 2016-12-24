@@ -45,6 +45,14 @@ func (backend *BackEnd) ServeApp() {
 	router.GET("/", hdl.ServeIndexPage)
 	router.GET("/login", hdl.ServeLoginPage)
 
+	// Handle path to API
+	router.POST("/api/login", hdl.Login)
+
+	router.GET("/api/account", hdl.SelectAccount)
+	router.PUT("/api/account", hdl.UpdateAccount)
+	router.POST("/api/account", hdl.InsertAccount)
+	router.DELETE("/api/account/:id", hdl.DeleteAccount)
+
 	// Set panic handler
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, arg interface{}) {
 		http.Error(w, fmt.Sprint(arg), 500)

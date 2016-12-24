@@ -65,21 +65,12 @@
                     <p id="empty-message" v-if="listEmpty">{{emptyMessage}}</p>
                     <template v-if="sidebar.selected === 4">
                         <div class="list-item account-item" v-for="(akun, idx) in pageList.item">
+                            <p class="sub-caption">{{akun.jabatan}}</p>
                             <p class="main-caption" :class="{admin: akun.admin === 1}">{{akun.nama}}<span></span></p>
-                            <p class="info">{{akun.username}}</p>
+                            <p class="info">{{akun.email}}<span v-if="akun.telepon !== ''">{{akun.telepon}}</span></p>
                             <div class="item-menu">
                                 <a @click="showEditAkun(akun, idx)"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
                                 <a @click="showDeleteAkun(akun, idx)"><i class="fa fa-fw fa-trash" aria-hidden="true"></i></a>
-                            </div>
-                        </div>
-                    </template>
-                    <template v-else-if="sidebar.selected === 5">
-                        <div class="list-item dosen-item" v-for="(dosen, idx) in pageList.item">
-                            <p class="main-caption">{{dosen.nama}}</p>
-                            <p class="info">{{dosen.jabatan}}</p>
-                            <div class="item-menu">
-                                <a @click="showEditDosen(dosen, idx)"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
-                                <a @click="showDeleteDosen(dosen, idx)"><i class="fa fa-fw fa-trash" aria-hidden="true"></i></a>
                             </div>
                         </div>
                     </template>
@@ -199,16 +190,16 @@
                     <input tabindex="1" ref="txtNamaAkun" type="text" placeholder="Nama pemilik akun" v-model.trim="inputAkun.field.nama" @keyup.enter="simpanAkun">
                 </div>
                 <div class="field">
-                    <label>Username</label>
-                    <input tabindex="2" type="text" placeholder="Username untuk login" v-model.trim="inputAkun.field.username" @keyup.enter="simpanAkun">
+                    <label>Email</label>
+                    <input tabindex="2" type="text" placeholder="Email untuk login" v-model.trim="inputAkun.field.email" @keyup.enter="simpanAkun">
                 </div>
-                <div class="field" v-if="inputAkun.isNew">
-                    <label>Password</label>
-                    <input tabindex="3" type="password" placeholder="Password untuk login" v-model.trim="inputAkun.field.password" @keyup.enter="simpanAkun">
+                <div class="field">
+                    <label>Jabatan</label>
+                    <input tabindex="3" type="text" placeholder="Jabatan pemilik akun" v-model.trim="inputAkun.field.jabatan" @keyup.enter="simpanAkun">
                 </div>
-                <div class="field" v-if="inputAkun.isNew">
-                    <label>Ulangi password</label>
-                    <input tabindex="4" type="password" placeholder="Ulangi lagi password" v-model.trim="inputAkun.field.ulangPassword" @keyup.enter="simpanAkun">
+                <div class="field">
+                    <label>Telepon</label>
+                    <input tabindex="4" type="text" placeholder="Nomor telepon pemilik akun" v-model.trim="inputAkun.field.telepon" @keyup.enter="simpanAkun">
                 </div>
                 <div class="field">
                     <label>Admin</label>
@@ -226,22 +217,6 @@
                 <div class="footer">
                     <a tabindex="7" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
                     <a tabindex="6" class="main-button" @click="simpanAkun" @keyup.enter="simpanAkun">Simpan</a>
-                </div>
-            </div>
-            <div class="dialog" id="dialog-input-dosen" v-if="inputDosen.visible">
-                <p class="header">{{inputDosen.isNew ? 'Dosen Baru' : 'Edit Dosen'}}</p>
-                <p class="error-message" v-if="inputDosen.error.visible">{{inputDosen.error.message}}</p>
-                <div class="field">
-                    <label>Nama</label>
-                    <input tabindex="1" ref="txtNamaDosen" type="text" placeholder="Nama lengkap dosen" v-model.trim="inputDosen.field.nama" @keyup.enter="simpanDosen">
-                </div>
-                <div class="field">
-                    <label>Jabatan</label>
-                    <input tabindex="2" type="text" placeholder="Jabatan dosen" v-model.trim="inputDosen.field.jabatan" @keyup.enter="simpanDosen">
-                </div>
-                <div class="footer">
-                    <a tabindex="4" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
-                    <a tabindex="3" class="main-button" @click="simpanDosen" @keyup.enter="simpanDosen">Simpan</a>
                 </div>
             </div>
             <div class="dialog" id="dialog-disposisi" v-if="dialogDisposisi.visible" @click="closeDisposisiSuggestion">
@@ -320,7 +295,7 @@
             <div class="dialog" id="dialog-message" v-if="dialog.visible">
                 <p class="header">{{dialog.title}}</p>
                 <p class="message">{{dialog.message}}</p>
-                <div class="footer">
+                <div class="footer" :class="{loading: dialog.loading}">
                     <a tabindex="2" @click="dialog.subAction" @keyup.enter="dialog.subAction" v-if="dialog.subCaption !== ''">{{dialog.subCaption}}</a>
                     <a tabindex="1" ref="mainDialogButton" class="main-button" @click="dialog.mainAction" @keyup.enter="dialog.mainAction">{{dialog.mainCaption}}</a>
                 </div>
@@ -439,12 +414,6 @@
                         caption: 'Kelola Akun',
                         icon: 'fa-users',
                         visible: payloadData.admin
-                    }, {
-                        value: 5,
-                        hasSeparator: false,
-                        caption: 'Kelola Dosen',
-                        icon: 'fa-address-book',
-                        visible: payloadData.admin
                     }],
                     account: {
                         id: payloadData.sub,
@@ -506,24 +475,10 @@
                     field: {
                         id: 0,
                         nama: '',
-                        username: '',
-                        password: '',
-                        ulangPassword: '',
-                        admin: 0,
-                        index: -1
-                    }
-                },
-                inputDosen: {
-                    visible: false,
-                    isNew: false,
-                    error: {
-                        visible: false,
-                        message: ''
-                    },
-                    field: {
-                        id: 0,
-                        nama: '',
+                        email: '',
                         jabatan: '',
+                        telepon: '',
+                        admin: 0,
                         index: -1
                     }
                 },
@@ -581,6 +536,7 @@
                 },
                 dialog: {
                     visible: false,
+                    loading: false,
                     title: '',
                     message: '',
                     mainCaption: '',
@@ -592,28 +548,23 @@
             computed: {
                 btnAddCaption: function() {
                     if (this.sidebar.selected === 4) return 'Akun Baru';
-                    else if (this.sidebar.selected === 5) return 'Dosen Baru';
                     else return 'Surat Baru';
                 },
                 btnAddAction: function() {
                     if (this.sidebar.selected === 4) return this.showInputAkun;
-                    else if (this.sidebar.selected === 5) return this.showInputDosen;
                     else return this.showInputSurat;
                 },
                 searchHint: function() {
-                    if (this.sidebar.selected === 4) return 'Cari nama dan username akun';
-                    else if (this.sidebar.selected === 5) return 'Cari nama dan jabatan dosen';
-                    else return 'Cari nomor surat, perihal dan sumber surat';
+                    if (this.sidebar.selected === 4) return 'Cari nama, email dan jabatan akun';
+                    else return 'Cari nomor surat, perihal, sumber dan pengirim surat';
                 },
                 emptyMessage: function() {
                     if (this.sidebar.selected === 4) return 'Tidak ada akun yang terdaftar';
-                    else if (this.sidebar.selected === 5) return 'Tidak ada dosen yang terdaftar';
                     else return 'Tidak ada surat yang terdaftar';
                 },
                 overlayVisible: function() {
                     return this.inputSurat.visible || 
                         this.inputAkun.visible || 
-                        this.inputDosen.visible || 
                         this.dialogDisposisi.visible || 
                         this.dialogDiarsip.visible || 
                         this.dialogDitindak.visible || 
@@ -656,8 +607,7 @@
                     this.closePageDetail();
 
                     var apiURL = '/api/surat';
-                    if (this.sidebar.selected === 5) apiURL = '/api/dosen';
-                    else if (this.sidebar.selected === 4) apiURL = '/api/account';
+                    if (this.sidebar.selected === 4) apiURL = '/api/account';
                     else if (this.sidebar.selected === 3) apiURL = '/api/surat?ditindak';
                     else if (this.sidebar.selected === 2) apiURL = '/api/surat?diarsip';
                     else if (this.sidebar.selected === 1) apiURL = '/api/surat?diproses';
@@ -765,9 +715,9 @@
                     this.inputAkun.isNew = true;
                     this.inputAkun.error.visible = false;
                     this.inputAkun.field.nama = '';
-                    this.inputAkun.field.username = '';
-                    this.inputAkun.field.password = '';
-                    this.inputAkun.field.ulangPassword = '';
+                    this.inputAkun.field.email = '';
+                    this.inputAkun.field.jabatan = '';
+                    this.inputAkun.field.telepon = '';
                     this.inputAkun.field.admin = 0;
 
                     this.$nextTick(function() {
@@ -780,7 +730,9 @@
                     this.inputAkun.error.visible = false;
                     this.inputAkun.field.id = akun.id;
                     this.inputAkun.field.nama = akun.nama;
-                    this.inputAkun.field.username = akun.username;
+                    this.inputAkun.field.email = akun.email;
+                    this.inputAkun.field.jabatan = akun.jabatan;
+                    this.inputAkun.field.telepon = akun.telepon;
                     this.inputAkun.field.password = '';
                     this.inputAkun.field.ulangPassword = '';
                     this.inputAkun.field.admin = akun.admin;
@@ -816,83 +768,26 @@
                 showDeleteAkun: function(akun, index) {
                     this.dialog.visible = true;
                     this.dialog.title = 'Hapus Akun';
-                    this.dialog.message = 'Yakin ingin menghapus data akun dengan nama ' + akun.nama + ' ?';
+                    this.dialog.message = 'Yakin ingin menghapus akun dengan nama ' + akun.nama + ' ?';
                     this.dialog.subCaption = 'Tidak';
                     this.dialog.mainCaption = 'Ya';
                     this.dialog.subAction = function() {
                         app.dialog.visible = false;
                     };
                     this.dialog.mainAction = function() {
+                        app.dialog.loading = true;
                         axios.delete('/api/account/' + akun.id)
                             .then(function() {
                                 app.pageList.item.splice(index, 1);
+                                app.dialog.loading = false;
                                 app.closeDialog();
                             })
                             .catch(function(error) {
-                                var message;
-                                if (error.response) message = error.response.data;
-                                else message = error.message;
+                                var message = error.response ? error.response.data : error.message;
 
+                                app.dialog.loading = false;
                                 app.dialog.title = 'Error';
                                 app.dialog.message = 'Gagal menghapus data akun. ' + message;
-                                app.dialog.subCaption = '';
-                                app.dialog.mainCaption = 'OK';
-                                app.dialog.mainAction = app.closeDialog;
-
-                                return;
-                            });
-                    }
-
-                    this.$nextTick(function() {
-                        this.$refs.mainDialogButton.focus();
-                    });
-                },
-                showInputDosen: function() {
-                    this.inputDosen.visible = true;
-                    this.inputDosen.isNew = true;
-                    this.inputDosen.error.visible = false;
-                    this.inputDosen.field.nama = '';
-                    this.inputDosen.field.jabatan = '';
-
-                    this.$nextTick(function() {
-                        this.$refs.txtNamaDosen.focus();
-                    });
-                },
-                showEditDosen: function(dosen, index) {
-                    this.inputDosen.visible = true;
-                    this.inputDosen.isNew = false;
-                    this.inputDosen.error.visible = false;
-                    this.inputDosen.field.id = dosen.id;
-                    this.inputDosen.field.nama = dosen.nama;
-                    this.inputDosen.field.jabatan = dosen.jabatan;
-                    this.inputDosen.field.index = index;
-
-                    this.$nextTick(function() {
-                        this.$refs.txtNamaDosen.focus();
-                    });
-                },
-                showDeleteDosen: function(dosen, index) {
-                    this.dialog.visible = true;
-                    this.dialog.title = 'Hapus Dosen';
-                    this.dialog.message = 'Yakin ingin menghapus data dosen dengan nama ' + dosen.nama + ' ?';
-                    this.dialog.subCaption = 'Tidak';
-                    this.dialog.mainCaption = 'Ya';
-                    this.dialog.subAction = function() {
-                        app.dialog.visible = false;
-                    };
-                    this.dialog.mainAction = function() {
-                        axios.delete('/api/dosen/' + dosen.id)
-                            .then(function() {
-                                app.pageList.item.splice(index, 1);
-                                app.closeDialog();
-                            })
-                            .catch(function(error) {
-                                var message;
-                                if (error.response) message = error.response.data;
-                                else message = error.message;
-
-                                app.dialog.title = 'Error';
-                                app.dialog.message = 'Gagal menghapus data dosen. ' + message;
                                 app.dialog.subCaption = '';
                                 app.dialog.mainCaption = 'OK';
                                 app.dialog.mainAction = app.closeDialog;
@@ -975,6 +870,8 @@
                     this.$refs.disposisiSuggestionItem[idx].focus();
                 },
                 closeDialog: function() {
+                    if (this.dialog.loading) return;
+                    
                     if (this.dialogDisposisi.visible && this.dialogDisposisi.suggestion.visible) {
                         this.dialogDisposisi.suggestion.visible = false;
                         this.dialogDisposisi.suggestion.item = [];
@@ -983,12 +880,12 @@
                     
                     this.inputSurat.visible = false;
                     this.inputAkun.visible = false;
-                    this.inputDosen.visible = false;
                     this.dialogDisposisi.visible = false;
                     this.dialogDiarsip.visible = false;
                     this.dialogDitindak.visible = false;
                     this.editPassword.visible = false;
                     this.dialog.visible = false;
+                    this.dialog.loading = false;
                 },
                 simpanSurat: function() {
                     // Validate input
@@ -1104,6 +1001,9 @@
                     });
                 },
                 simpanAkun: function() {
+                    // If still loading, stop
+                    if (this.dialog.loading) return;
+                    
                     // Validate input
                     if (this.inputAkun.field.nama === '') {
                         this.inputAkun.error.visible = true;
@@ -1111,21 +1011,15 @@
                         return;
                     }
 
-                    if (this.inputAkun.field.username === '') {
+                    if (this.inputAkun.field.email === '') {
                         this.inputAkun.error.visible = true;
-                        this.inputAkun.error.message = 'Username harus diisi';
+                        this.inputAkun.error.message = 'Email harus diisi';
                         return;
                     }
 
-                    if (this.inputAkun.isNew && this.inputAkun.field.password === '') {
+                    if (this.inputAkun.field.jabatan === '') {
                         this.inputAkun.error.visible = true;
-                        this.inputAkun.error.message = 'Password harus diisi';
-                        return;
-                    }
-
-                    if (this.inputAkun.isNew && this.inputAkun.field.ulangPassword !== this.inputAkun.field.password) {
-                        this.inputAkun.error.visible = true;
-                        this.inputAkun.error.message = 'Password yang diulang tidak cocok';
+                        this.inputAkun.error.message = 'Jabatan harus diisi';
                         return;
                     }
 
@@ -1147,6 +1041,7 @@
                         app.dialog.visible = false;
                     };
                     this.dialog.mainAction = function() {
+                        app.dialog.loading = true;
                         var method = app.inputAkun.isNew ? 'post' : 'put';
                         axios({
                                 method: method,
@@ -1154,8 +1049,9 @@
                                 data: {
                                     id: app.inputAkun.field.id,
                                     nama: app.inputAkun.field.nama,
-                                    password: app.inputAkun.field.password,
-                                    username: app.inputAkun.field.username,
+                                    email: app.inputAkun.field.email,
+                                    jabatan: app.inputAkun.field.jabatan,
+                                    telepon: app.inputAkun.field.telepon,
                                     admin: parseInt(app.inputAkun.field.admin, 10) | 0
                                 }
                             })
@@ -1170,108 +1066,52 @@
                                     }
                                     
                                     app.pageList.item[index].nama = app.inputAkun.field.nama;
-                                    app.pageList.item[index].username = app.inputAkun.field.username;
+                                    app.pageList.item[index].email = app.inputAkun.field.email;
+                                    app.pageList.item[index].jabatan = app.inputAkun.field.jabatan;
+                                    app.pageList.item[index].telepon = app.inputAkun.field.telepon;
                                     app.pageList.item[index].admin = parseInt(app.inputAkun.field.admin, 10) | 0;
-
+                                    
+                                    app.dialog.loading = false;
                                     app.closeDialog();
                                     return;
                                 }
 
-                                axios('/api/account').then(function(response) {
-                                    app.pageList.page = response.data.page;
-                                    app.pageList.maxPage = response.data.maxPage;
-                                    app.pageList.item = response.data.item;
-                                    app.closeDialog();
-
-                                    var listArea = document.getElementById('item-list-area');
-                                    Ps.initialize(listArea);
-                                });
+                                axios('/api/account')
+                                    .then(function(response) {
+                                        app.pageList.page = response.data.page;
+                                        app.pageList.maxPage = response.data.maxPage;
+                                        app.pageList.item = response.data.item;
+                                        app.dialog.loading = false;
+                                        app.closeDialog();
+                                        
+                                        var listArea = document.getElementById('item-list-area');
+                                        Ps.initialize(listArea);
+                                    })
+                                    .catch(function(error) {
+                                        var message;
+                                        if (error.response) message = error.response.data;
+                                        else message = error.message;
+                                    
+                                        app.dialog.loading = false;
+                                        app.dialog.title = 'Error';
+                                        app.dialog.message = message;
+                                        app.dialog.subCaption = '';
+                                        app.dialog.mainCaption = 'OK';
+                                        app.dialog.mainAction = function() {
+                                            app.dialog.visible = false;
+                                        }
+                                    });
                             })
                             .catch(function(error) {
                                 var message;
                                 if (error.response) message = error.response.data;
                                 else message = error.message;
 
-                                app.inputAkun.visible = true;
                                 app.dialog.visible = false;
+                                app.dialog.loading = false;
+                                app.inputAkun.visible = true;
                                 app.inputAkun.error.visible = true;
                                 app.inputAkun.error.message = message;
-
-                                return;
-                            });
-                    }
-
-                    this.$nextTick(function() {
-                        this.$refs.mainDialogButton.focus();
-                    });
-                },
-                simpanDosen: function() {
-                    // Validate input
-                    if (this.inputDosen.field.nama === '') {
-                        this.inputDosen.error.visible = true;
-                        this.inputDosen.error.message = 'Nama harus diisi';
-                        return;
-                    }
-
-                    if (this.inputDosen.field.jabatan === '') {
-                        this.inputDosen.error.visible = true;
-                        this.inputDosen.error.message = 'Jabatan harus diisi';
-                        return;
-                    }
-
-                    // Show dialog confirmation
-                    this.inputDosen.visible = false;
-                    this.dialog.visible = true;
-                    this.dialog.title = this.inputDosen.isNew ? 'Dosen Baru' : 'Edit Dosen';
-                    this.dialog.message = this.inputDosen.isNew ? 'Yakin ingin menyimpan data dosen baru ?' : 'Yakin ingin memperbarui data dosen ?';
-                    this.dialog.subCaption = 'Tidak';
-                    this.dialog.mainCaption = 'Ya';
-                    this.dialog.subAction = function() {
-                        app.inputDosen.visible = true;
-                        app.dialog.visible = false;
-                    };
-                    this.dialog.mainAction = function() {
-                        var method = app.inputDosen.isNew ? 'post' : 'put';
-                        axios({
-                                method: method,
-                                url: '/api/dosen',
-                                data: {
-                                    id: app.inputDosen.field.id,
-                                    nama: app.inputDosen.field.nama,
-                                    jabatan: app.inputDosen.field.jabatan
-                                }
-                            })
-                            .then(function() {
-                                if (!app.inputDosen.isNew) {
-                                    var index = app.inputDosen.field.index;
-                                    app.pageList.item[index].nama = app.inputDosen.field.nama;
-                                    app.pageList.item[index].jabatan = app.inputDosen.field.jabatan;
-
-                                    app.closeDialog();
-                                    return;
-                                }
-
-                                axios('/api/dosen').then(function(response) {
-                                    app.pageList.page = response.data.page;
-                                    app.pageList.maxPage = response.data.maxPage;
-                                    app.pageList.item = response.data.item;
-                                    app.closeDialog();
-
-                                    var listArea = document.getElementById('item-list-area');
-                                    Ps.initialize(listArea);
-                                });
-                            })
-                            .catch(function(error) {
-                                var message;
-                                if (error.response) message = error.response.data;
-                                else message = error.message;
-
-                                app.inputDosen.visible = true;
-                                app.dialog.visible = false;
-                                app.inputDosen.error.visible = true;
-                                app.inputDosen.error.message = message;
-
-                                return;
                             });
                     }
 
@@ -1624,11 +1464,6 @@
         });
 
         document.getElementById('app').removeAttribute('style');
-        
-        window.onbeforeunload = function() {
-            Cookies.remove('token');
-            axios.post('/api/exit', {});
-        };
 
         axios('/api/surat').then(function(response) {
             app.pageList.page = response.data.page;
