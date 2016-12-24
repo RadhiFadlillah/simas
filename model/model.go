@@ -56,12 +56,6 @@ type PageListAccount struct {
 	Item    []Account `json:"item"`
 }
 
-type PageListDosen struct {
-	Page    int     `json:"page"`
-	MaxPage int     `json:"maxPage"`
-	Item    []Dosen `json:"item"`
-}
-
 type PageSurat struct {
 	Surat    Surat          `json:"surat"`
 	Timeline []TimelineItem `json:"timeline"`
