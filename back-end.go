@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
-	_ "github.com/xeodou/go-sqlcipher"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -59,7 +59,7 @@ func (backend *BackEnd) generateAdmin() {
 		checkError(err)
 
 		backend.DB.MustExec(`INSERT INTO account 
-			(email, nama, password, admin) VALUES (?, ?, ?, ?)`,
-			"admin@simas", "Administrator", hashedPassword, 1)
+			(email, nama, password, jabatan, admin) VALUES (?, ?, ?, ?)`,
+			"admin@simas", "Administrator", "Administrator", hashedPassword, 1)
 	}
 }
