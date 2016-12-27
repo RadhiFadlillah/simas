@@ -410,12 +410,17 @@ input {
                     cursor: default;
                     padding-right: 78px;
                     .main-caption {
-                        &.admin::after {
+                        span::after {
                             font-family: 'FontAwesome';
                             margin-left: 8px;
-                            content: '\f007';
                             font-size: @font-size;
                             color: @admin;
+                        }
+                        span.admin::after {
+                            content: @icon-admin;
+                        }
+                        span.penginput::after {
+                            content: @icon-penginput;
                         }
                     }
                     .info span::before {
