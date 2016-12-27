@@ -39,14 +39,14 @@
     <div id="app" class="home" style="display: none">
         <div id="sidebar">
             <img id="logo" src="/res/logo.svg">
-            <a id="btn-add" @click="btnAddAction">{{btnAddCaption}}</a>
+            <a id="btn-add" @click="btnAddAction" v-if="btnAddVisible">{{btnAddCaption}}</a>
             <template v-for="item in sidebar.item" v-if="item.visible">
                 <div v-if="item.hasSeparator" class="separator"></div>
                 <a class="sidebar-link" :class="{selected: sidebar.selected === item.value}" @click="selectSidebar(item.value)"><i class="fa fa-fw" :class="item.icon" aria-hidden="true"></i>{{item.caption}}</a>
             </template>
             <div class="spacer"></div>
             <div id="user-area">
-                <p>{{sidebar.account.nama}}</p>
+                <p>{{sidebar.account.nama}}<br>({{sidebar.account.jabatan}})</p>
                 <div class="user-menu">
                     <a @click="showEditAkunAktif"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
                     <a @click="showEditPassword"><i class="fa fa-fw fa-unlock-alt" aria-hidden="true"></i></a>
@@ -66,7 +66,7 @@
                     <template v-if="sidebar.selected === 4">
                         <div class="list-item account-item" v-for="(akun, idx) in pageList.item">
                             <p class="sub-caption">{{akun.jabatan}}</p>
-                            <p class="main-caption" :class="{admin: akun.admin === 1}">{{akun.nama}}<span></span></p>
+                            <p class="main-caption">{{akun.nama}}<span class="admin" v-if="akun.admin === 1"></span><span class="penginput" v-if="akun.penginput === 1"></span></p>
                             <p class="info">{{akun.email}}<span v-if="akun.telepon !== ''">{{akun.telepon}}</span></p>
                             <div class="item-menu">
                                 <a @click="showEditAkun(akun, idx)"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
@@ -132,7 +132,7 @@
                 </div>
             </div>
         </div>
-        <div id="overlay" v-if="overlayVisible" @keyup.esc="closeDialog">
+        <div id="overlay" v-if="overlayVisible" @keyup.esc="closeDialog" @click="closeTujuanSuggestion">
             <div class="dialog" id="dialog-input-surat" v-if="inputSurat.visible">
                 <p class="header">{{inputSurat.isNew ? 'Surat Baru' : 'Edit Surat'}}</p>
                 <p class="error-message" v-if="inputSurat.error.visible">{{inputSurat.error.message}}</p>
@@ -149,37 +149,47 @@
                     <input tabindex="3" type="text" placeholder="Sumber surat" v-model.trim="inputSurat.field.sumber" @keyup.enter="simpanSurat">
                 </div>
                 <div class="field">
+                    <label>Tujuan surat</label>
+                    <input tabindex="4" type="text" placeholder="Nama tujuan surat" :value="inputSurat.field.tujuan" @input="getTujuanSuggestion" @keyup.enter="selectTujuanSuggestion(0)" @keyup.down="focusTujuanSuggestion(0)">
+                    <div class="suggestion" v-if="inputSurat.suggestion.visible">
+                        <div ref="tujuanSuggestionItem" class="suggestion-item" v-for="(account, idx) in inputSurat.suggestion.item" :tabindex="5 + idx" @keyup.up="focusTujuanSuggestion(idx - 1)" @keyup.down="focusTujuanSuggestion(idx + 1)" @keyup.enter="selectTujuanSuggestion(idx)" @click="selectTujuanSuggestion(idx)">
+                            <p class="main">{{account.nama}}</p>
+                            <p class="info">{{account.jabatan}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
                     <label>Tanggal surat</label>
-                    <input tabindex="4" type="text" placeholder="Tanggal surat" v-model.trim="inputSurat.field.tanggal" @keyup.enter="simpanSurat">
+                    <input :tabindex="5 + tujuanSuggestionCount" ref="txtTanggalSurat" type="text" placeholder="Tanggal surat" v-model.trim="inputSurat.field.tanggal" @focus="closeTujuanSuggestion" @keyup.enter="simpanSurat">
                 </div>
                 <div class="field">
                     <label>Waktu terima</label>
-                    <input tabindex="5" type="text" placeholder="Waktu terima" v-model.trim="inputSurat.field.waktuTerima" @keyup.enter="simpanSurat">
+                    <input :tabindex="6 + tujuanSuggestionCount" type="text" placeholder="Waktu terima" v-model.trim="inputSurat.field.waktuTerima" @keyup.enter="simpanSurat">
                 </div>
                 <div class="field">
                     <label>Prioritas</label>
                     <div class="choice-area">
                         <div class="choice-item">
-                            <input tabindex="6" name="prioritas" id="choice-biasa" type="radio" value="0" v-model="inputSurat.field.prioritas">
+                            <input :tabindex="7 + tujuanSuggestionCount" name="prioritas" id="choice-biasa" type="radio" value="0" v-model="inputSurat.field.prioritas">
                             <label for="choice-biasa">Biasa</label>
                         </div>
                         <div class="choice-item">
-                            <input tabindex="6" name="prioritas" id="choice-segera" type="radio" value="1" v-model="inputSurat.field.prioritas">
+                            <input :tabindex="7 + tujuanSuggestionCount" name="prioritas" id="choice-segera" type="radio" value="1" v-model="inputSurat.field.prioritas">
                             <label for="choice-segera">Segera</label>
                         </div>
                         <div class="choice-item">
-                            <input tabindex="6" name="prioritas" id="choice-penting" type="radio" value="2" v-model="inputSurat.field.prioritas">
+                            <input :tabindex="7 + tujuanSuggestionCount" name="prioritas" id="choice-penting" type="radio" value="2" v-model="inputSurat.field.prioritas">
                             <label for="choice-penting">Penting</label>
                         </div>
                         <div class="choice-item">
-                            <input tabindex="6" name="prioritas" id="choice-rahasia" type="radio" value="3" v-model="inputSurat.field.prioritas">
+                            <input :tabindex="7 + tujuanSuggestionCount" name="prioritas" id="choice-rahasia" type="radio" value="3" v-model="inputSurat.field.prioritas">
                             <label for="choice-rahasia">Rahasia</label>
                         </div>
                     </div>
                 </div>
                 <div class="footer">
-                    <a tabindex="8" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
-                    <a tabindex="7" class="main-button" @click="simpanSurat" @keyup.enter="simpanSurat">Simpan</a>
+                    <a :tabindex="9 + tujuanSuggestionCount" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
+                    <a :tabindex="8 + tujuanSuggestionCount" class="main-button" @click="simpanSurat" @keyup.enter="simpanSurat">Simpan</a>
                 </div>
             </div>
             <div class="dialog" id="dialog-input-akun" v-if="inputAkun.visible">
@@ -214,9 +224,22 @@
                         </div>
                     </div>
                 </div>
+                <div class="field">
+                    <label>Penginput surat</label>
+                    <div class="choice-area">
+                        <div class="choice-item">
+                            <input tabindex="6" name="penginput" id="choice-penginput-no" type="radio" value="0" v-model="inputAkun.field.penginput">
+                            <label for="choice-penginput-no">Tidak</label>
+                        </div>
+                        <div class="choice-item">
+                            <input tabindex="6" name="penginput" id="choice-penginput-yes" type="radio" value="1" v-model="inputAkun.field.penginput">
+                            <label for="choice-penginput-yes">Ya</label>
+                        </div>
+                    </div>
+                </div>
                 <div class="footer">
-                    <a tabindex="7" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
-                    <a tabindex="6" class="main-button" @click="simpanAkun" @keyup.enter="simpanAkun">Simpan</a>
+                    <a tabindex="8" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
+                    <a tabindex="7" class="main-button" @click="simpanAkun" @keyup.enter="simpanAkun">Simpan</a>
                 </div>
             </div>
             <div class="dialog" id="dialog-disposisi" v-if="dialogDisposisi.visible" @click="closeDisposisiSuggestion">
@@ -226,14 +249,7 @@
                     <label>Nama tujuan</label>
                     <input tabindex="1" ref="txtNamaDosen" type="text" placeholder="Nama dosen tujuan disposisi" :value="dialogDisposisi.field.target" @input="getDosenSuggestion" @keyup.enter="selectDisposisiSuggestion(0)" @keyup.down="focusDisposisiSuggestion(0)">
                     <div class="suggestion" v-if="dialogDisposisi.suggestion.visible">
-                        <div ref="disposisiSuggestionItem" 
-                             class="suggestion-item" 
-                             v-for="(dosen, idx) in dialogDisposisi.suggestion.item" 
-                             :tabindex="2 + idx" 
-                             @keyup.up="focusDisposisiSuggestion(idx - 1)"
-                             @keyup.down="focusDisposisiSuggestion(idx + 1)"
-                             @keyup.enter="selectDisposisiSuggestion(idx)"
-                             @click="selectDisposisiSuggestion(idx)">
+                        <div ref="disposisiSuggestionItem" class="suggestion-item" v-for="(dosen, idx) in dialogDisposisi.suggestion.item" :tabindex="2 + idx" @keyup.up="focusDisposisiSuggestion(idx - 1)" @keyup.down="focusDisposisiSuggestion(idx + 1)" @keyup.enter="selectDisposisiSuggestion(idx)" @click="selectDisposisiSuggestion(idx)">
                             <p class="main">{{dosen.nama}}</p>
                             <p class="info">{{dosen.jabatan}}</p>
                         </div>
@@ -325,18 +341,30 @@
     <script>
         // Set locale
         moment.locale('id');
-        
+
         // Parse token
         var token = Cookies.get('token');
-        
+
         if (token == null) {
             location.href = '/login';
         }
-        
+
         var payload = token.split('.')[1],
             decoded = atob(payload),
             payloadData = JSON.parse(decoded);
-        
+
+        console.log(JSON.stringify(payloadData, '', '  '));
+
+        // Parse account data
+        var account;
+        if (localStorage.getItem('account') !== null) {
+            account = JSON.parse(localStorage.getItem('account'));
+        } else if (sessionStorage.getItem('account') !== null) {
+            account = JSON.parse(sessionStorage.getItem('account'));
+        } else {
+            location.href = '/login';
+        }
+
         // Register component
         Vue.component('timeline-item', {
             template: '#timeline-item',
@@ -377,7 +405,7 @@
                 }
             }
         });
-        
+
         // Register app
         var app = new Vue({
             el: '#app',
@@ -417,9 +445,12 @@
                     }],
                     account: {
                         id: payloadData.sub,
-                        nama: payloadData.name,
-                        username: payloadData.uname,
-                        admin: payloadData.admin ? 1 : 0
+                        nama: account.nama,
+                        email: account.email,
+                        jabatan: account.jabatan,
+                        telepon: account.telepon,
+                        admin: payloadData.admin ? 1 : 0,
+                        penginput: payloadData.input ? 1 : 0
                     }
                 },
                 pageList: {
@@ -460,9 +491,15 @@
                         nomor: '',
                         perihal: '',
                         sumber: '',
+                        tujuanId: 0,
+                        tujuan: '',
                         tanggal: '',
                         waktuTerima: '',
                         prioritas: 0
+                    },
+                    suggestion: {
+                        visible: false,
+                        item: []
                     }
                 },
                 inputAkun: {
@@ -479,6 +516,7 @@
                         jabatan: '',
                         telepon: '',
                         admin: 0,
+                        penginput: 0,
                         index: -1
                     }
                 },
@@ -546,6 +584,10 @@
                 }
             },
             computed: {
+                btnAddVisible: function() {
+                    if (this.sidebar.account.penginput !== 1 && this.sidebar.selected < 4) return false;
+                    return true;
+                },
                 btnAddCaption: function() {
                     if (this.sidebar.selected === 4) return 'Akun Baru';
                     else return 'Surat Baru';
@@ -563,13 +605,16 @@
                     else return 'Tidak ada surat yang terdaftar';
                 },
                 overlayVisible: function() {
-                    return this.inputSurat.visible || 
-                        this.inputAkun.visible || 
-                        this.dialogDisposisi.visible || 
-                        this.dialogDiarsip.visible || 
-                        this.dialogDitindak.visible || 
+                    return this.inputSurat.visible ||
+                        this.inputAkun.visible ||
+                        this.dialogDisposisi.visible ||
+                        this.dialogDiarsip.visible ||
+                        this.dialogDitindak.visible ||
                         this.editPassword.visible ||
                         this.dialog.visible;
+                },
+                tujuanSuggestionCount: function() {
+                    return this.inputSurat.suggestion.item.length;
                 },
                 listEmpty: function() {
                     return this.pageList.item.length === 0;
@@ -628,6 +673,12 @@
                 }
             },
             methods: {
+                logout: function() {
+                    Cookies.remove('token');
+                    localStorage.removeItem('account');
+                    sessionStorage.removeItem('account');
+                    location.href = '/login';
+                },
                 statusClass: function(status) {
                     if (status === 3) return 'ditindak-diarsip';
                     else if (status === 2) return 'ditindak';
@@ -655,7 +706,7 @@
                 showEditSurat: function() {
                     var tanggal = moment(this.pageDetail.surat.tanggal, 'YYYY-MM-DD').format('DD-MM-YYYY'),
                         waktuTerima = moment(this.pageDetail.surat.waktuTerima, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm:ss');
-                    
+
                     this.inputSurat.visible = true;
                     this.inputSurat.isNew = false;
                     this.inputSurat.error.visible = false;
@@ -675,7 +726,7 @@
                     var index = this.pageDetail.index,
                         idSurat = this.pageDetail.surat.id,
                         nomorSurat = this.pageDetail.surat.nomor;
-                    
+
                     this.dialog.visible = true;
                     this.dialog.title = 'Hapus Surat';
                     this.dialog.message = 'Yakin ingin menghapus data surat dengan nomor ' + nomorSurat + ' ?';
@@ -714,11 +765,13 @@
                     this.inputAkun.visible = true;
                     this.inputAkun.isNew = true;
                     this.inputAkun.error.visible = false;
+                    this.inputAkun.field.id = 0;
                     this.inputAkun.field.nama = '';
                     this.inputAkun.field.email = '';
                     this.inputAkun.field.jabatan = '';
                     this.inputAkun.field.telepon = '';
                     this.inputAkun.field.admin = 0;
+                    this.inputAkun.field.penginput = 0;
 
                     this.$nextTick(function() {
                         this.$refs.txtNamaAkun.focus();
@@ -733,9 +786,8 @@
                     this.inputAkun.field.email = akun.email;
                     this.inputAkun.field.jabatan = akun.jabatan;
                     this.inputAkun.field.telepon = akun.telepon;
-                    this.inputAkun.field.password = '';
-                    this.inputAkun.field.ulangPassword = '';
                     this.inputAkun.field.admin = akun.admin;
+                    this.inputAkun.field.penginput = akun.penginput;
                     this.inputAkun.field.index = index;
 
                     this.$nextTick(function() {
@@ -746,10 +798,13 @@
                     var akun = {
                         id: this.sidebar.account.id,
                         nama: this.sidebar.account.nama,
-                        username: this.sidebar.account.username,
-                        admin: this.sidebar.account.admin
+                        email: this.sidebar.account.email,
+                        jabatan: this.sidebar.account.jabatan,
+                        telepon: this.sidebar.account.telepon,
+                        admin: this.sidebar.account.admin,
+                        penginput: this.sidebar.account.penginput
                     };
-                    
+
                     this.showEditAkun(akun, -1);
                 },
                 showEditPassword: function() {
@@ -766,9 +821,15 @@
                     });
                 },
                 showDeleteAkun: function(akun, index) {
+                    var dialogMessage = 'Yakin ingin menghapus akun dengan nama ' + akun.nama + ' ?';
+                    if (this.sidebar.account.id === akun.id) {
+                        dialogMessage += ' Setelah dihapus, anda harus login kembali.';
+                        index = -1;
+                    }
+
                     this.dialog.visible = true;
                     this.dialog.title = 'Hapus Akun';
-                    this.dialog.message = 'Yakin ingin menghapus akun dengan nama ' + akun.nama + ' ?';
+                    this.dialog.message = dialogMessage;
                     this.dialog.subCaption = 'Tidak';
                     this.dialog.mainCaption = 'Ya';
                     this.dialog.subAction = function() {
@@ -778,6 +839,11 @@
                         app.dialog.loading = true;
                         axios.delete('/api/account/' + akun.id)
                             .then(function() {
+                                if (index === -1) {
+                                    app.logout();
+                                    return;
+                                }
+
                                 app.pageList.item.splice(index, 1);
                                 app.dialog.loading = false;
                                 app.closeDialog();
@@ -838,46 +904,22 @@
                     this.dialog.message = 'Yakin ingin log out dari aplikasi ?';
                     this.dialog.subCaption = 'Tidak';
                     this.dialog.mainCaption = 'Ya';
+                    this.dialog.mainAction = this.logout;
                     this.dialog.subAction = function() {
                         app.dialog.visible = false;
                     };
-                    this.dialog.mainAction = function() {
-                        Cookies.remove('token');
-                        location.href = '/login';
-                    }
-
                     this.$nextTick(function() {
                         this.$refs.mainDialogButton.focus();
                     });
                 },
-                closeDisposisiSuggestion: function() {
-                    if (this.dialogDisposisi.suggestion.visible) {
-                        this.dialogDisposisi.suggestion.visible = false;
-                        this.dialogDisposisi.suggestion.item = [];
-                    }
-                },
-                selectDisposisiSuggestion: function(idx) {
-                    var index = parseInt(idx, 10) | 0,
-                        dosen = this.dialogDisposisi.suggestion.item[index];
-                    
-                    this.dialogDisposisi.field.targetId = dosen.id;
-                    this.dialogDisposisi.field.target = dosen.nama;
-
-                    this.$refs.txtWaktuDisposisi.focus();
-                },
-                focusDisposisiSuggestion: function(idx) {
-                    if (idx < 0 || idx >= this.$refs.disposisiSuggestionItem.length) return;
-                    this.$refs.disposisiSuggestionItem[idx].focus();
-                },
                 closeDialog: function() {
                     if (this.dialog.loading) return;
-                    
-                    if (this.dialogDisposisi.visible && this.dialogDisposisi.suggestion.visible) {
-                        this.dialogDisposisi.suggestion.visible = false;
-                        this.dialogDisposisi.suggestion.item = [];
+
+                    if (this.inputSurat.visible && this.inputSurat.suggestion.visible) {
+                        this.closeTujuanSuggestion();
                         return;
                     }
-                    
+
                     this.inputSurat.visible = false;
                     this.inputAkun.visible = false;
                     this.dialogDisposisi.visible = false;
@@ -936,7 +978,7 @@
                         var method = app.inputSurat.isNew ? 'post' : 'put';
                         tanggalSurat = tanggalSurat.format('YYYY-MM-DD');
                         waktuTerima = waktuTerima.format('YYYY-MM-DD HH:mm:ss');
-                        
+
                         axios({
                                 method: method,
                                 url: '/api/surat',
@@ -953,14 +995,14 @@
                             .then(function() {
                                 if (!app.inputSurat.isNew) {
                                     var index = app.pageDetail.index;
-                                    
+
                                     app.pageList.item[index].nomor = app.inputSurat.field.nomor;
                                     app.pageList.item[index].perihal = app.inputSurat.field.perihal;
                                     app.pageList.item[index].sumber = app.inputSurat.field.sumber;
                                     app.pageList.item[index].tanggal = tanggalSurat;
                                     app.pageList.item[index].waktuTerima = waktuTerima;
                                     app.pageList.item[index].prioritas = parseInt(app.inputSurat.field.prioritas, 10) | 0;
-                                    
+
                                     app.pageDetail.surat.nomor = app.inputSurat.field.nomor;
                                     app.pageDetail.surat.perihal = app.inputSurat.field.perihal;
                                     app.pageDetail.surat.sumber = app.inputSurat.field.sumber;
@@ -1003,7 +1045,7 @@
                 simpanAkun: function() {
                     // If still loading, stop
                     if (this.dialog.loading) return;
-                    
+
                     // Validate input
                     if (this.inputAkun.field.nama === '') {
                         this.inputAkun.error.visible = true;
@@ -1023,13 +1065,19 @@
                         return;
                     }
 
+                    if (this.inputAkun.field.telepon.match(/\D/g)) {
+                        this.inputAkun.error.visible = true;
+                        this.inputAkun.error.message = 'Nomor telepon hanya boleh terdiri atas angka';
+                        return;
+                    }
+
                     // Show dialog confirmation
                     var dialogMessage = this.inputAkun.isNew ? 'Yakin ingin menyimpan data akun baru ?' : 'Yakin ingin memperbarui data akun ?';
                     if (this.inputAkun.field.id === this.sidebar.account.id) {
                         dialogMessage += ' Setelah edit dilakukan, anda harus login kembali.';
                         this.inputAkun.field.index = -1;
                     }
-                    
+
                     this.inputAkun.visible = false;
                     this.dialog.visible = true;
                     this.dialog.title = this.inputAkun.isNew ? 'Akun Baru' : 'Edit Akun';
@@ -1052,25 +1100,25 @@
                                     email: app.inputAkun.field.email,
                                     jabatan: app.inputAkun.field.jabatan,
                                     telepon: app.inputAkun.field.telepon,
-                                    admin: parseInt(app.inputAkun.field.admin, 10) | 0
+                                    admin: parseInt(app.inputAkun.field.admin, 10) | 0,
+                                    penginput: parseInt(app.inputAkun.field.penginput, 10) | 0
                                 }
                             })
                             .then(function() {
                                 if (!app.inputAkun.isNew) {
                                     var index = app.inputAkun.field.index;
-                                    
+
                                     if (index === -1) {
-                                        Cookies.remove('token');
-                                        location.href = '/login';
+                                        app.logout();
                                         return;
                                     }
-                                    
+
                                     app.pageList.item[index].nama = app.inputAkun.field.nama;
                                     app.pageList.item[index].email = app.inputAkun.field.email;
                                     app.pageList.item[index].jabatan = app.inputAkun.field.jabatan;
                                     app.pageList.item[index].telepon = app.inputAkun.field.telepon;
                                     app.pageList.item[index].admin = parseInt(app.inputAkun.field.admin, 10) | 0;
-                                    
+
                                     app.dialog.loading = false;
                                     app.closeDialog();
                                     return;
@@ -1083,7 +1131,7 @@
                                         app.pageList.item = response.data.item;
                                         app.dialog.loading = false;
                                         app.closeDialog();
-                                        
+
                                         var listArea = document.getElementById('item-list-area');
                                         Ps.initialize(listArea);
                                     })
@@ -1091,7 +1139,7 @@
                                         var message;
                                         if (error.response) message = error.response.data;
                                         else message = error.message;
-                                    
+
                                         app.dialog.loading = false;
                                         app.dialog.title = 'Error';
                                         app.dialog.message = message;
@@ -1147,18 +1195,18 @@
                     };
                     this.dialog.mainAction = function() {
                         var suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
-                        
+
                         axios.post('/api/disposisi', {
-                            suratId: suratId,
-                            parentId: app.dialogDisposisi.field.parentId,
-                            targetId: app.dialogDisposisi.field.targetId,
-                            modified: waktuDisposisi.format('YYYY-MM-DD HH:mm:ss')
-                        })
+                                suratId: suratId,
+                                parentId: app.dialogDisposisi.field.parentId,
+                                targetId: app.dialogDisposisi.field.targetId,
+                                modified: waktuDisposisi.format('YYYY-MM-DD HH:mm:ss')
+                            })
                             .then(function() {
                                 axios('/api/surat/' + suratId).then(function(response) {
                                     app.setDetailSurat(response.data);
                                     app.closeDialog();
-            
+
                                     app.$nextTick(function() {
                                         var detailArea = document.getElementById('detail-content');
                                         Ps.initialize(detailArea);
@@ -1206,17 +1254,17 @@
                     this.dialog.mainAction = function() {
                         var id = app.dialogDiarsip.field.id,
                             suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
-                        
+
                         axios.post('/api/diarsip', {
-                            id: id,
-                            suratId: suratId,
-                            modified: waktu.format('YYYY-MM-DD HH:mm:ss')
-                        })
+                                id: id,
+                                suratId: suratId,
+                                modified: waktu.format('YYYY-MM-DD HH:mm:ss')
+                            })
                             .then(function() {
                                 axios('/api/surat/' + suratId).then(function(response) {
                                     app.setDetailSurat(response.data);
                                     app.closeDialog();
-            
+
                                     app.$nextTick(function() {
                                         var detailArea = document.getElementById('detail-content');
                                         Ps.initialize(detailArea);
@@ -1264,17 +1312,17 @@
                     this.dialog.mainAction = function() {
                         var id = app.dialogDitindak.field.id,
                             suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
-                        
+
                         axios.post('/api/ditindak', {
-                            id: id,
-                            suratId: suratId,
-                            modified: waktu.format('YYYY-MM-DD HH:mm:ss')
-                        })
+                                id: id,
+                                suratId: suratId,
+                                modified: waktu.format('YYYY-MM-DD HH:mm:ss')
+                            })
                             .then(function() {
                                 axios('/api/surat/' + suratId).then(function(response) {
                                     app.setDetailSurat(response.data);
                                     app.closeDialog();
-            
+
                                     app.$nextTick(function() {
                                         var detailArea = document.getElementById('detail-content');
                                         Ps.initialize(detailArea);
@@ -1300,6 +1348,9 @@
                     });
                 },
                 simpanPassword: function() {
+                    // If still loading, stop
+                    if (this.dialog.loading) return;
+
                     // Validate input
                     if (this.editPassword.field.password === '') {
                         this.editPassword.error.visible = true;
@@ -1325,22 +1376,24 @@
                         app.dialog.visible = false;
                     };
                     this.dialog.mainAction = function() {
+                        app.dialog.loading = true;
                         axios.post('/api/account/password', {
-                            id: app.editPassword.field.id,
-                            passwordLama: app.editPassword.field.passwordLama,
-                            password: app.editPassword.field.password
-                        })
+                                id: app.editPassword.field.id,
+                                passwordLama: app.editPassword.field.passwordLama,
+                                password: app.editPassword.field.password
+                            })
                             .then(function() {
-                                Cookies.remove('token');
-                                location.href = '/login';
+                                app.dialog.loading = false;
+                                app.logout();
                             })
                             .catch(function(error) {
                                 var message;
                                 if (error.response) message = error.response.data;
                                 else message = error.message;
 
-                                app.editPassword.visible = true;
                                 app.dialog.visible = false;
+                                app.dialog.loading = false;
+                                app.editPassword.visible = true;
                                 app.editPassword.error.visible = true;
                                 app.editPassword.error.message = message;
 
@@ -1390,6 +1443,40 @@
                     this.pageList.selected = '';
                     this.pageDetail.visible = false;
                 },
+                getTujuanSuggestion: _.debounce(function(e) {
+                    var value = e.target.value.trim();
+                    this.inputSurat.field.tujuan = value;
+                    this.inputSurat.field.tujuanId = 0;
+
+                    if (value === '') {
+                        this.closeTujuanSuggestion();
+                        return;
+                    }
+
+                    axios('/api/account?keyword=' + encodeURI(value)).then(function(response) {
+                        app.inputSurat.suggestion.visible = true;
+                        app.inputSurat.suggestion.item = response.data.item;
+                    });
+                }, 300),
+                closeTujuanSuggestion: function() {
+                    if (this.inputSurat.suggestion.visible) {
+                        this.inputSurat.suggestion.visible = false;
+                        this.inputSurat.suggestion.item = [];
+                    }
+                },
+                selectTujuanSuggestion: function(idx) {
+                    var index = parseInt(idx, 10) | 0,
+                        account = this.inputSurat.suggestion.item[index];
+
+                    this.inputSurat.field.tujuanId = account.id;
+                    this.inputSurat.field.tujuan = account.nama;
+
+                    this.$refs.txtTanggalSurat.focus();
+                },
+                focusTujuanSuggestion: function(idx) {
+                    if (idx < 0 || idx >= this.$refs.tujuanSuggestionItem.length) return;
+                    this.$refs.tujuanSuggestionItem[idx].focus();
+                },
                 getDosenSuggestion: _.debounce(function(e) {
                     var value = e.target.value.trim();
                     this.dialogDisposisi.field.target = value;
@@ -1408,19 +1495,19 @@
                 filterPageList: _.debounce(function(e) {
                     var value = e.target.value.trim(),
                         keyword = encodeURI(value);
-                    
+
                     this.pageList.page = 1;
                     this.pageList.maxPage = 1;
                     this.pageList.keyword = value;
                     this.pageList.item = [];
-                    
+
                     var apiURL = '/api/surat?';
                     if (this.sidebar.selected === 5) apiURL = '/api/dosen?';
                     else if (this.sidebar.selected === 4) apiURL = '/api/account?';
                     else if (this.sidebar.selected === 3) apiURL = '/api/surat?ditindak';
                     else if (this.sidebar.selected === 2) apiURL = '/api/surat?diarsip';
                     else if (this.sidebar.selected === 1) apiURL = '/api/surat?diproses';
-                    
+
                     apiURL += '&keyword=' + keyword;
                     axios(apiURL).then(function(response) {
                         app.pageList.page = response.data.page;
