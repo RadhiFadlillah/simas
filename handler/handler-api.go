@@ -101,7 +101,7 @@ func (handler *Handler) SelectAccount(w http.ResponseWriter, r *http.Request, ps
 	checkError(err)
 
 	// Prepare query
-	sqlQuery := "SELECT id, email, nama, jabatan, telepon, admin FROM account WHERE 1"
+	sqlQuery := "SELECT id, email, nama, jabatan, telepon, admin, penginput FROM account WHERE 1"
 	args := []interface{}{}
 
 	// Add keyword to query
@@ -160,14 +160,15 @@ func (handler *Handler) InsertAccount(w http.ResponseWriter, r *http.Request, ps
 
 	// Insert account to database
 	res := handler.DB.MustExec(`INSERT INTO account 
-		(nama, email, jabatan, telepon, password, admin) VALUES 
-		(?, ?, ?, ?, ?, ?)`,
+		(nama, email, jabatan, telepon, password, admin, penginput) VALUES 
+		(?, ?, ?, ?, ?, ?, ?)`,
 		account.Nama,
 		account.Email,
 		account.Jabatan,
 		account.Telepon,
 		hashedPassword,
-		account.Admin)
+		account.Admin,
+		account.Penginput)
 
 	// Return inserted ID
 	delay()
@@ -209,12 +210,13 @@ func (handler *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request, ps
 
 	// Update account in database
 	handler.DB.MustExec(`UPDATE account SET nama = ?, email = ?, jabatan = ?, 
-		telepon = ?, admin = ? WHERE id = ?`,
+		telepon = ?, admin = ?, penginput = ? WHERE id = ?`,
 		account.Nama,
 		account.Email,
 		account.Jabatan,
 		account.Telepon,
 		account.Admin,
+		account.Penginput,
 		account.ID)
 
 	// Return updated ID
