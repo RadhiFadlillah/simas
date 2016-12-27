@@ -44,6 +44,15 @@ func checkToken(r *http.Request) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
+func tokenMustExist(r *http.Request) jwt.MapClaims {
+	claims, err := checkToken(r)
+	if err != nil {
+		panic(errors.New("Token tidak valid atau sudah expired"))
+	}
+
+	return claims
+}
+
 func jwtKeyFunc(token *jwt.Token) (interface{}, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, errors.New("Unexpected signing method")

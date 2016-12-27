@@ -51,6 +51,7 @@ func (backend *BackEnd) ServeApp() {
 	router.GET("/api/account", hdl.SelectAccount)
 	router.PUT("/api/account", hdl.UpdateAccount)
 	router.POST("/api/account", hdl.InsertAccount)
+	router.POST("/api/account/password", hdl.UpdatePassword)
 	router.DELETE("/api/account/:id", hdl.DeleteAccount)
 
 	// Set panic handler

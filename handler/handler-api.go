@@ -249,3 +249,43 @@ func (handler *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request, ps
 	delay()
 	fmt.Fprint(w, idAccount)
 }
+
+func (handler *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Check token
+	claims := tokenMustExist(r)
+
+	// Decode request
+	var request model.UpdatePasswordRequest
+	checkError(json.NewDecoder(r.Body).Decode(&request))
+
+	// Validate input
+	if request.Password == "" {
+		panic(errors.New("Password baru harus diisi"))
+	}
+
+	// Get account data from database
+	id := claims["sub"]
+	account := model.Account{}
+	err := handler.DB.Get(&account, "SELECT * FROM account WHERE id = ?", id)
+	if err != nil {
+		panic(errors.New("User tidak terdaftar"))
+	}
+
+	// Compare password with database
+	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(request.PasswordLama))
+	if err != nil {
+		panic(errors.New("Password lama salah"))
+	}
+
+	// Hash password with bcrypt
+	password := []byte(request.Password)
+	hashedPassword, err := bcrypt.GenerateFromPassword(password, 10)
+	checkError(err)
+
+	// Update password in database
+	handler.DB.MustExec("UPDATE account SET password = ? WHERE id = ?", hashedPassword, id)
+
+	// Return account ID
+	delay()
+	fmt.Fprint(w, id)
+}
