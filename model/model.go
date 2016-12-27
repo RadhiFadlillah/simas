@@ -3,13 +3,14 @@ package model
 import "gopkg.in/guregu/null.v3"
 
 type Account struct {
-	ID       int    `db:"id"       json:"id"`
-	Email    string `db:"email"    json:"email"`
-	Nama     string `db:"nama"     json:"nama"`
-	Jabatan  string `db:"jabatan"  json:"jabatan"`
-	Telepon  string `db:"telepon"  json:"telepon"`
-	Password string `db:"password" json:"password"`
-	Admin    int    `db:"admin"    json:"admin"`
+	ID        int    `db:"id"        json:"id"`
+	Email     string `db:"email"     json:"email"`
+	Nama      string `db:"nama"      json:"nama"`
+	Jabatan   string `db:"jabatan"   json:"jabatan"`
+	Telepon   string `db:"telepon"   json:"telepon"`
+	Password  string `db:"password"  json:"password"`
+	Admin     int    `db:"admin"     json:"admin"`
+	Penginput int    `db:"penginput" json:"penginput"`
 }
 
 type Surat struct {
