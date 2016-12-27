@@ -79,7 +79,7 @@ func (backend *BackEnd) generateAdmin() {
 		checkError(err)
 
 		backend.DB.MustExec(`INSERT INTO account 
-			(email, nama, password, jabatan, admin) VALUES (?, ?, ?, ?)`,
-			"admin@simas", "Administrator", "Administrator", hashedPassword, 1)
+			(email, nama, password, jabatan, admin, penginput) VALUES (?, ?, ?, ?, ?, ?)`,
+			"admin@simas", "Administrator", hashedPassword, "Administrator", 1, 1)
 	}
 }
