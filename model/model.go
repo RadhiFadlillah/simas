@@ -38,6 +38,12 @@ type Disposisi struct {
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	Remember bool   `json:"remember"`
+}
+
+type LoginResult struct {
+	Account Account `json:"account"`
+	Token   string  `json:"token"`
 }
 
 type UpdatePasswordRequest struct {

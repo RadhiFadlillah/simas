@@ -41,30 +41,45 @@ func (handler *Handler) Login(w http.ResponseWriter, r *http.Request, ps httprou
 		panic(errors.New("Email dan password tidak cocok"))
 	}
 
-	// Generate token
+	// Calculate expiration time
 	nbf := time.Now()
-	exp := time.Date(nbf.Year(), nbf.Month(), nbf.Day(), 0, 0, 0, 0, time.Local).AddDate(0, 0, 1)
+	exp := time.Now().Add(2 * time.Hour)
 
+	if request.Remember {
+		exp = time.Date(nbf.Year(), nbf.Month(), nbf.Day(), 0, 0, 0, 0, time.Local).AddDate(0, 0, 1)
+	}
+
+	// Generate token
 	isAdmin := false
 	if account.Admin == 1 {
 		isAdmin = true
+	}
+
+	isPenginput := false
+	if account.Penginput == 1 {
+		isPenginput = true
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"nbf":   nbf.Unix(),
 		"exp":   exp.Unix(),
 		"sub":   account.ID,
-		"name":  account.Nama,
-		"email": account.Email,
 		"admin": isAdmin,
+		"input": isPenginput,
 	})
 
 	tokenString, err := token.SignedString([]byte(tokenSecret))
 	checkError(err)
 
 	// Return login result
+	result := model.LoginResult{
+		Account: account,
+		Token:   tokenString,
+	}
+
 	delay()
-	fmt.Fprint(w, tokenString)
+	w.Header().Add("Content-Type", "application/json")
+	checkError(json.NewEncoder(w).Encode(&result))
 }
 
 func (handler *Handler) SelectAccount(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
