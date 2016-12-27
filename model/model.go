@@ -82,3 +82,9 @@ type TimelineStatus struct {
 	Status   int              `db:"status" json:"status"`
 	Children []TimelineStatus `json:"children"`
 }
+
+type EmailNewAccount struct {
+	Account  Account
+	Domain   string
+	Password string
+}

@@ -1,10 +1,14 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
+	"net/smtp"
+	"net/url"
 	"simas/model"
 	"strconv"
 	"time"
@@ -12,6 +16,16 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	simasDomain    string = "simas.tokoyulia.com"
+	zenzivaUserKey string = "jcyhzp"
+	zenzivaPassKey string = "teYa52CLLLR5FHdtQDdY"
+	emailAddress   string = "m.radhi.f@gmail.com"
+	emailPassword  string = "Z9t7U6NsPhQYTWGSMppbkFSsp"
+	emailServer    string = "smtp.gmail.com"
+	emailPort      int    = 587
 )
 
 func (handler *Handler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -170,6 +184,27 @@ func (handler *Handler) InsertAccount(w http.ResponseWriter, r *http.Request, ps
 		account.Admin,
 		account.Penginput)
 
+	// Prepare SMS
+	smsMessage := fmt.Sprintf(
+		`Anda telah didaftarkan ke Sistem Manajemen Surat Fakultas Teknik UPR. 
+		Silakan login ke %s dengan menggunakan email %s dan password %s`,
+		simasDomain, account.Email, password)
+
+	// Prepare email
+	buffer := bytes.Buffer{}
+	emailTemplate, err := template.New("emailTemplate").Delims("[[", "]]").Parse(emailNewAccount)
+	checkError(err)
+
+	err = emailTemplate.Execute(&buffer, model.EmailNewAccount{
+		Account:  account,
+		Domain:   simasDomain,
+		Password: randomPassword})
+	checkError(err)
+
+	// Send SMS and Email
+	go handler.sendSMS(account.Telepon, smsMessage)
+	go handler.sendEmail(account.Email, "Selamat Datang di SIMAS FT UPR", buffer.String())
+
 	// Return inserted ID
 	delay()
 	id, _ := res.LastInsertId()
@@ -288,4 +323,32 @@ func (handler *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request, p
 	// Return account ID
 	delay()
 	fmt.Fprint(w, id)
+}
+
+func (handler *Handler) sendSMS(number string, message string) {
+	if number == "" {
+		return
+	}
+
+	zenzivaQuery := url.Values{}
+	zenzivaQuery.Set("userkey", zenzivaUserKey)
+	zenzivaQuery.Set("passkey", zenzivaPassKey)
+	zenzivaQuery.Set("nohp", number)
+	zenzivaQuery.Set("pesan", message)
+
+	zenzivaURL, _ := url.Parse("https://reguler.zenziva.net/apps/smsapi.php")
+
+	zenzivaURL.RawQuery = zenzivaQuery.Encode()
+
+	http.Get(zenzivaURL.String())
+}
+
+func (handler *Handler) sendEmail(target string, subject string, body string) {
+	header := "MIME-Version: 1.0" + "\r\n" +
+		"Content-type: text/html" + "\r\n" +
+		"Subject: " + subject + "\r\n\r\n"
+
+	auth := smtp.PlainAuth("", emailAddress, emailPassword, emailServer)
+	server := fmt.Sprintf("%s:%d", emailServer, emailPort)
+	smtp.SendMail(server, auth, emailAddress, []string{target}, []byte(header+body))
 }
