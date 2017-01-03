@@ -47,7 +47,7 @@ func checkToken(r *http.Request) (jwt.MapClaims, error) {
 func tokenMustExist(r *http.Request) jwt.MapClaims {
 	claims, err := checkToken(r)
 	if err != nil {
-		panic(errors.New("Token tidak valid atau sudah expired"))
+		panic(errors.New("Token tidak valid atau sudah expired. Silakan login kembali"))
 	}
 
 	return claims
@@ -84,5 +84,5 @@ func checkError(err error) {
 }
 
 func delay() {
-	time.Sleep(2000 * time.Millisecond)
+	time.Sleep(0 * time.Millisecond)
 }
