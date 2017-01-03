@@ -529,6 +529,9 @@ func (handler *Handler) GetSurat(w http.ResponseWriter, r *http.Request, ps http
 }
 
 func (handler *Handler) InsertSurat(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Check token
+	tokenMustExist(r)
+
 	// Decode form request
 	reader, err := r.MultipartReader()
 	checkError(err)
@@ -685,6 +688,9 @@ func (handler *Handler) InsertSurat(w http.ResponseWriter, r *http.Request, ps h
 }
 
 func (handler *Handler) UpdateSurat(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Check token
+	tokenMustExist(r)
+
 	// Decode request
 	reader, err := r.MultipartReader()
 	checkError(err)
@@ -811,6 +817,10 @@ func (handler *Handler) UpdateSurat(w http.ResponseWriter, r *http.Request, ps h
 }
 
 func (handler *Handler) DeleteSurat(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Check token
+	tokenMustExist(r)
+
+	// Get id from URL
 	suratID := ps.ByName("id")
 
 	// Delete surat in database
@@ -844,6 +854,9 @@ func (handler *Handler) GetFileSurat(w http.ResponseWriter, r *http.Request, ps 
 }
 
 func (handler *Handler) InsertDisposisi(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Check token
+	tokenMustExist(r)
+
 	// Decode request
 	var disposisi model.Disposisi
 	checkError(json.NewDecoder(r.Body).Decode(&disposisi))
@@ -910,6 +923,9 @@ func (handler *Handler) InsertDisposisi(w http.ResponseWriter, r *http.Request, 
 }
 
 func (handler *Handler) InsertDiarsip(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Check token
+	tokenMustExist(r)
+
 	// Decode request
 	var disposisi model.Disposisi
 	checkError(json.NewDecoder(r.Body).Decode(&disposisi))
@@ -932,6 +948,9 @@ func (handler *Handler) InsertDiarsip(w http.ResponseWriter, r *http.Request, ps
 }
 
 func (handler *Handler) InsertDitindak(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// Check token
+	tokenMustExist(r)
+
 	// Decode request
 	var disposisi model.Disposisi
 	checkError(json.NewDecoder(r.Body).Decode(&disposisi))
