@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>SIMAS - Sistem Manajemen Surat</title>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Source Sans Pro', sans-serif
+        }
+        
+        .main {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            border: 1px solid #ddd;
+            background-color: white;
+            color: #424242
+        }
+        
+        .main .header {
+            color: white;
+            background-color: #2d3e50;
+            text-align: center;
+            padding: 16px
+        }
+        
+        .main .header img {
+            width: 80%;
+            max-width: 200px;
+            margin-bottom: 8px
+        }
+        
+        .main .header p {
+            font-weight: 600;
+            font-size: 14px
+        }
+        
+        .main .content {
+            padding: 16px;
+            font-size: 16px
+        }
+        
+        .main .content>*:not(:last-child) {
+            margin-bottom: 16px
+        }
+        
+        .main .content>p {
+            line-height: 1.5em;
+            word-break: break-all;
+            word-wrap: break-word;
+        }
+        
+        .main .content table {
+            border: none;
+            outline: none;
+            border-collapse: collapse;
+            width: 100%
+        }
+        
+        .main .content table tr th,
+        .main .content table tr td {
+            text-align: left;
+            vertical-align: top;
+            padding-bottom: 16px
+        }
+        
+        @media screen and (max-width: 500px) {
+            .main .header p {
+                font-size: 12px
+            }
+            .main .content {
+                font-size: 14px;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="main">
+        <div class="header">
+            <img src="https://s30.postimg.org/54vx5emht/logo_email.jpg">
+            <p>Sistem Manajemen Surat</p>
+        </div>
+        <div class="content">
+            <p>Surat dengan data sebagai berikut :</p>
+            <table>
+                <tr>
+                    <th style="padding-right: 16px; min-width: 100px;">Nomor</th>
+                    <th style="padding-right: 16px; padding-left: 16px">:</th>
+                    <td style="width: 100%">[[.Nomor]]</td>
+                </tr>
+                <tr>
+                    <th>Perihal</th>
+                    <th style="padding-right: 16px; padding-left: 16px">:</th>
+                    <td>[[.Perihal]]</td>
+                </tr>
+            </table>
+            <p>Telah selesai <b>[[if eq .Status 1]]diarsipkan[[else if eq .Status 2]]ditindaklanjuti[[else]]diarsip dan ditindaklanjuti[[end]]</b>. Untuk mengakses Sistem Manajemen Surat, silakan login ke <a href="https://[[.Domain]]">[[.Domain]]</a></p>
+        </div>
+    </div>
+</body>
+
+</html>

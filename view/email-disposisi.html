@@ -4,10 +4,10 @@
 
 <head>
     <title>SIMAS - Sistem Manajemen Surat</title>
-    
+
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600">
     <style>
         * {
@@ -54,7 +54,9 @@
         }
         
         .main .content>p {
-            line-height: 1.5em
+            line-height: 1.5em;
+            word-break: break-all;
+            word-wrap: break-word;
         }
         
         .main .content table {
@@ -67,6 +69,7 @@
         .main .content table tr th,
         .main .content table tr td {
             text-align: left;
+            vertical-align: top;
             padding-bottom: 16px
         }
         
@@ -74,11 +77,11 @@
             .main .header p {
                 font-size: 12px
             }
-            
             .main .content {
                 font-size: 14px;
             }
         }
+
     </style>
 </head>
 
@@ -89,48 +92,30 @@
             <p>Sistem Manajemen Surat</p>
         </div>
         <div class="content">
-            <p>Anda telah didaftarkan ke Sistem Manajemen Surat Fakultas Teknik UPR dengan data sebagai berikut :</p>
+            <p>Anda mendapat disposisi dari <b>[[.Sumber]]</b> ([[.Jabatan]]) surat dengan data sebagai berikut :</p>
             <table>
                 <tr>
-                    <th style="padding-right: 16px">Nama</th>
+                    <th style="padding-right: 16px; min-width: 100px;">Nomor</th>
                     <th style="padding-right: 16px; padding-left: 16px">:</th>
-                    <td style="width: 100%">[[.Account.Nama]]</td>
+                    <td style="width: 100%">[[.Surat.Nomor]]</td>
                 </tr>
                 <tr>
-                    <th>Jabatan</th>
+                    <th>Perihal</th>
                     <th style="padding-right: 16px; padding-left: 16px">:</th>
-                    <td>[[.Account.Jabatan]]</td>
+                    <td>[[.Surat.Perihal]]</td>
                 </tr>
                 <tr>
-                    <th>Telepon</th>
+                    <th>Sumber surat</th>
                     <th style="padding-right: 16px; padding-left: 16px">:</th>
-                    <td>[[.Account.Telepon]]</td>
+                    <td>[[.Surat.Sumber]]</td>
                 </tr>
                 <tr>
-                    <th>Admin</th>
+                    <th>Prioritas</th>
                     <th style="padding-right: 16px; padding-left: 16px">:</th>
-                    <td>[[if eq .Account.Admin 1]]Ya[[else]]Tidak[[end]]</td>
-                </tr>
-                <tr>
-                    <th>Keterangan</th>
-                    <th style="padding-right: 16px; padding-left: 16px">:</th>
-                    <td>[[if eq .Account.Penginput 1]]Bisa menambah surat[[else]]-[[end]]</td>
+                    <td>[[if eq .Surat.Prioritas 0]]Biasa[[else if eq .Surat.Prioritas 1]]Segera[[else if eq .Surat.Prioritas 2]]Penting[[else]]Rahasia[[end]]</td>
                 </tr>
             </table>
-            <p>Untuk mengakses Sistem Manajemen Surat, silakan login ke <a href="https://[[.Domain]]">[[.Domain]]</a> :</p>
-            <table>
-                <tr>
-                    <th>Email</th>
-                    <th style="padding-right: 16px; padding-left: 16px">:</th>
-                    <td style="width: 100%">[[.Account.Email]]</td>
-                </tr>
-                <tr>
-                    <th>Password</th>
-                    <th style="padding-right: 16px; padding-left: 16px">:</th>
-                    <td>[[.Password]]</td>
-                </tr>
-            </table>
-            <p>Setelah login, segera ganti password untuk mengamankan akun anda.</p>
+            <p>Untuk mengakses Sistem Manajemen Surat, silakan login ke <a href="https://[[.Domain]]">[[.Domain]]</a></p>
         </div>
     </div>
 </body>
