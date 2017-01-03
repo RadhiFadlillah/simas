@@ -37,14 +37,16 @@
 
 <body>
     <div id="app" class="home" style="display: none">
-        <div id="sidebar">
+        <div id="sidebar" :class="{visible: sidebar.visible}">
+            <a id="close-sidebar" @click="sidebar.visible = false"><i class="fa fa-fw fa-times" aria-hidden="true"></i></a>
             <img id="logo" src="/res/logo.svg">
-            <a id="btn-add" @click="btnAddAction" v-if="btnAddVisible">{{btnAddCaption}}</a>
-            <template v-for="item in sidebar.item" v-if="item.visible">
-                <div v-if="item.hasSeparator" class="separator"></div>
-                <a class="sidebar-link" :class="{selected: sidebar.selected === item.value}" @click="selectSidebar(item.value)"><i class="fa fa-fw" :class="item.icon" aria-hidden="true"></i>{{item.caption}}</a>
-            </template>
-            <div class="spacer"></div>
+            <div id="link-container">
+                <a id="btn-add" @click="btnAddAction" :class="{visible: btnAddVisible}">{{btnAddCaption}}</a>
+                <template v-for="item in sidebar.item" v-if="item.visible">
+                    <div v-if="item.hasSeparator" class="separator"></div>
+                    <a class="sidebar-link" :class="{selected: sidebar.selected === item.value}" @click="selectSidebar(item.value)"><i class="fa fa-fw" :class="item.icon" aria-hidden="true"></i>{{item.caption}}<span v-if="item.count !== 0">{{item.count > 99 ? '99+' : item.count}}</span></a>
+                </template>
+            </div>
             <div id="user-area">
                 <p>{{sidebar.account.nama}}<br>({{sidebar.account.jabatan}})</p>
                 <div class="user-menu">
@@ -57,11 +59,13 @@
         <div id="content">
             <div id="page-list">
                 <div id="search-area">
+                    <a @click="sidebar.visible = true"><i class="fa fa-fw fa-bars" aria-hidden="true"></i></a>
                     <label for="txt-search"><i class="fa fa-fw fa-search" aria-hidden="true"></i></label>
                     <input type="text" :placeholder="searchHint" :value="pageList.keyword" @input="filterPageList">
                 </div>
                 <div id="item-list-area">
-                    <p class="error-message" v-if="pageList.error.visible">Gagal mengambil data</p>
+                    <p class="error-message" v-if="pageList.error.visible">{{pageList.error.message}}</p>
+                    <p id="loading-list" v-if="pageList.loading"><i class="fa fa-spinner fa-spin fa-fw"></i></p>
                     <p id="empty-message" v-if="listEmpty">{{emptyMessage}}</p>
                     <template v-if="sidebar.selected === 4">
                         <div class="list-item account-item" v-for="(akun, idx) in pageList.item">
@@ -75,26 +79,35 @@
                         </div>
                     </template>
                     <template v-else>
-                        <div class="list-item inbox-item" v-for="(surat, idx) in pageList.item" :class="[statusClass(surat.status), {selected: pageList.selected === surat.id}]" @click="selectSurat(surat.id, idx)">
-                            <p class="sub-caption">{{surat.sumber}}</p>
-                            <p class="main-caption">{{surat.perihal}}<span></span></p>
+                        <div class="list-item inbox-item" v-for="(surat, idx) in pageList.item" :class="[statusClass(surat.status), {selected: pageList.selected === idx}, {new: surat.read === 0}]" @click="selectSurat(idx)">
+                            <p class="sub-caption"><span v-if="surat.read === 0">New</span>{{surat.sumber}}</p>
+                            <p class="main-caption">{{surat.perihal}}</p>
                             <p class="info">{{surat.nomor}}<span class="prioritas" :class="surat.prioritas | prioritasClass"></span><span class="tanggal">{{surat.tanggal | dateFormat('YYYY-MM-DD', 'DD MMM YYYY')}}</span></p>
                         </div>
                     </template>
-                    <a id="btn-load-item" v-if="listIsLoadable" @click="loadMore">Load lebih banyak</a>
+                </div>
+                <div id="pagination-area" v-if="pageList.maxPage > 1">
+                    <a v-if="pageList.page > 2" @click="loadListItem(pageList.keyword, 1)"><i class="fa fa-fw fa-angle-double-left" aria-hidden="true"></i></a>
+                    <a v-if="pageList.page > 1" @click="loadListItem(pageList.keyword, pageList.page - 1)"><i class="fa fa-fw fa-angle-left" aria-hidden="true"></i></a>
+                    <input type="text" :value="pageList.page" @input="paginationChange">
+                    <p>/</p>
+                    <p>{{pageList.maxPage}}</p>
+                    <a v-if="pageList.page < pageList.maxPage" @click="loadListItem(pageList.keyword, pageList.page + 1)"><i class="fa fa-fw fa-angle-right" aria-hidden="true"></i></a>
+                    <a v-if="pageList.page < pageList.maxPage - 1" @click="loadListItem(pageList.keyword, pageList.maxPage)"><i class="fa fa-fw fa-angle-double-right" aria-hidden="true"></i></a>
                 </div>
             </div>
             <div id="page-detail" v-if="pageDetail.visible">
-                <div id="detail-header">
+                <p id="loading-detail" v-if="pageDetail.loading"><i class="fa fa-spinner fa-spin fa-fw"></i></p>
+                <div id="detail-header" v-if="pageDetail.surat.id !== ''">
                     <a id="btn-back" @click="closePageDetail"><i class="fa fa-fw fa-arrow-left" aria-hidden="true"></i></a>
                     <p id="header-perihal">{{pageDetail.surat.perihal}}</p>
-                    <div id="header-menu">
+                    <div id="header-menu" v-if="sidebar.selected === 5 && sidebar.account.penginput === 1">
                         <a @click="showEditSurat"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i></a>
                         <a @click="showDeleteSurat"><i class="fa fa-fw fa-trash" aria-hidden="true"></i></a>
                     </div>
                 </div>
-                <div id="detail-content">
-                    <div id="detail-surat">
+                <div id="detail-content" v-if="pageDetail.surat.id !== ''">
+                    <div class="detail-data">
                         <div>
                             <p class="label">Nomor surat</p>
                             <p class="value">{{pageDetail.surat.nomor}}</p>
@@ -108,6 +121,10 @@
                             <p class="value">{{pageDetail.surat.sumber}}</p>
                         </div>
                         <div>
+                            <p class="label">Tujuan surat</p>
+                            <p class="value">{{pageDetail.surat.tujuan}}<span class="jabatan">{{pageDetail.surat.jabatan}}</span></p>
+                        </div>
+                        <div>
                             <p class="label">Waktu terima</p>
                             <p class="value">{{pageDetail.surat.waktuTerima | dateFormat('YYYY-MM-DD HH:mm:ss', 'DD MMMM YYYY [jam] HH:mm') | replace(' jam 00:00', '')}}</p>
                         </div>
@@ -117,22 +134,43 @@
                         </div>
                         <div>
                             <p class="label">Status</p>
-                            <p class="value" :class="statusClass(pageDetail.surat.status)">{{pageDetail.surat.status | statusName}}</p>
+                            <p class="value" :class="statusClass(pageDetail.disposisi.status)">{{pageDetail.disposisi.status | statusName}}</p>
+                        </div>
+                        <div v-if="pageDetail.files.length > 0">
+                            <p class="label">File surat</p>
+                            <div class="value file-list">
+                                <a @click="showLightbox(file)" v-for="(file, idx) in pageDetail.files">{{file}}</a>
+                            </div>
                         </div>
                     </div>
-                    <div class="timeline">
-                        <timeline-item v-for="item in pageDetail.timeline" :id="item.id" :target="item.target" :jabatan="item.jabatan" :waktu="item.waktu" :status="item.status" :children="item.children" @disposisi-click="showDialogDisposisi" @diarsip-click="showDialogDiarsip" @ditindak-click="showDialogDitindak">
+                    <div class="detail-data" id="data-disposisi" v-if="sidebar.selected !== 5 && pageDetail.surat.id !== '' && pageDetail.disposisi.parentId != null">
+                        <div>
+                            <p class="label">Sumber disposisi</p>
+                            <p class="value">{{pageDetail.disposisi.sumber}}<span class="jabatan">{{pageDetail.disposisi.jabatan}}</span></p>
+                        </div>
+                        <div>
+                            <p class="label">Waktu disposisi</p>
+                            <p class="value">{{pageDetail.disposisi.waktu | dateFormat('YYYY-MM-DD HH:mm:ss', 'DD MMMM YYYY [jam] HH:mm:ss') | replace('jam 00:00:00', '')}}</p>
+                        </div>
+                        <div>
+                            <p class="label">Keterangan</p>
+                            <pre class="value">{{pageDetail.disposisi.deskripsi === '' ? '-' : pageDetail.disposisi.deskripsi}}</pre>
+                        </div>
+                    </div>
+                    <div class="timeline" v-if="sidebar.selected !== 5">
+                        <timeline-item v-for="item in pageDetail.timeline" :id="item.id" :tujuan="item.tujuan" :jabatan="item.jabatan" :waktu="item.waktu" :status="item.status" :children="item.children" @disposisi-click="showDialogDisposisi" @diarsip-click="showDialogDiarsip" @ditindak-click="showDialogDitindak">
                         </timeline-item>
-                        <div class="timeline-act">
-                            <a class="disposisi" @click="showDialogDisposisi(0)"></a>
-                            <a v-if="pageDetail.timeline.length === 0" class="diarsip"></a>
-                            <a v-if="pageDetail.timeline.length === 0" class="ditindak"></a>
+                        <div class="timeline-act" v-if="pageDetail.disposisi.status === 0">
+                            <a class="disposisi" @click="showDialogDisposisi(pageDetail.disposisi.id)"></a>
+                            <a v-if="pageDetail.timeline.length === 0" class="diarsip" @click="showDialogDiarsip"></a>
+                            <a v-if="pageDetail.timeline.length === 0" class="ditindak" @click="showDialogDitindak"></a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div id="overlay" v-if="overlayVisible" @keyup.esc="closeDialog" @click="closeTujuanSuggestion">
+        <div id="loading-overlay" v-if="loadingOverlayVisible"></div>
+        <div id="dialog-overlay" v-if="dialogOverlayVisible" @keyup.esc="closeDialog" @click="closeTujuanSuggestion">
             <div class="dialog" id="dialog-input-surat" v-if="inputSurat.visible">
                 <p class="header">{{inputSurat.isNew ? 'Surat Baru' : 'Edit Surat'}}</p>
                 <p class="error-message" v-if="inputSurat.error.visible">{{inputSurat.error.message}}</p>
@@ -148,10 +186,11 @@
                     <label>Sumber surat</label>
                     <input tabindex="3" type="text" placeholder="Sumber surat" v-model.trim="inputSurat.field.sumber" @keyup.enter="simpanSurat">
                 </div>
-                <div class="field">
+                <div class="field" v-if="inputSurat.isNew">
                     <label>Tujuan surat</label>
                     <input tabindex="4" type="text" placeholder="Nama tujuan surat" :value="inputSurat.field.tujuan" @input="getTujuanSuggestion" @keyup.enter="selectTujuanSuggestion(0)" @keyup.down="focusTujuanSuggestion(0)">
-                    <div class="suggestion" v-if="inputSurat.suggestion.visible">
+                    <div class="suggestion" v-if="inputSurat.suggestion.loading || inputSurat.suggestion.item.length > 0">
+                        <p class="loading" v-if="inputSurat.suggestion.loading"><i class="fa fa-spinner fa-spin fa-fw"></i></p>
                         <div ref="tujuanSuggestionItem" class="suggestion-item" v-for="(account, idx) in inputSurat.suggestion.item" :tabindex="5 + idx" @keyup.up="focusTujuanSuggestion(idx - 1)" @keyup.down="focusTujuanSuggestion(idx + 1)" @keyup.enter="selectTujuanSuggestion(idx)" @click="selectTujuanSuggestion(idx)">
                             <p class="main">{{account.nama}}</p>
                             <p class="info">{{account.jabatan}}</p>
@@ -160,36 +199,46 @@
                 </div>
                 <div class="field">
                     <label>Tanggal surat</label>
-                    <input :tabindex="5 + tujuanSuggestionCount" ref="txtTanggalSurat" type="text" placeholder="Tanggal surat" v-model.trim="inputSurat.field.tanggal" @focus="closeTujuanSuggestion" @keyup.enter="simpanSurat">
+                    <input :tabindex="5 + inputSurat.suggestion.item.length" ref="txtTanggalSurat" type="text" placeholder="Tanggal surat" v-model.trim="inputSurat.field.tanggal" @focus="closeTujuanSuggestion" @keyup.enter="simpanSurat">
                 </div>
                 <div class="field">
                     <label>Waktu terima</label>
-                    <input :tabindex="6 + tujuanSuggestionCount" type="text" placeholder="Waktu terima" v-model.trim="inputSurat.field.waktuTerima" @keyup.enter="simpanSurat">
+                    <input :tabindex="6 + inputSurat.suggestion.item.length" type="text" placeholder="Waktu terima" v-model.trim="inputSurat.field.waktuTerima" @keyup.enter="simpanSurat">
                 </div>
                 <div class="field">
                     <label>Prioritas</label>
                     <div class="choice-area">
                         <div class="choice-item">
-                            <input :tabindex="7 + tujuanSuggestionCount" name="prioritas" id="choice-biasa" type="radio" value="0" v-model="inputSurat.field.prioritas">
+                            <input :tabindex="7 + inputSurat.suggestion.item.length" name="prioritas" id="choice-biasa" type="radio" value="0" v-model="inputSurat.field.prioritas">
                             <label for="choice-biasa">Biasa</label>
                         </div>
                         <div class="choice-item">
-                            <input :tabindex="7 + tujuanSuggestionCount" name="prioritas" id="choice-segera" type="radio" value="1" v-model="inputSurat.field.prioritas">
+                            <input :tabindex="7 + inputSurat.suggestion.item.length" name="prioritas" id="choice-segera" type="radio" value="1" v-model="inputSurat.field.prioritas">
                             <label for="choice-segera">Segera</label>
                         </div>
                         <div class="choice-item">
-                            <input :tabindex="7 + tujuanSuggestionCount" name="prioritas" id="choice-penting" type="radio" value="2" v-model="inputSurat.field.prioritas">
+                            <input :tabindex="7 + inputSurat.suggestion.item.length" name="prioritas" id="choice-penting" type="radio" value="2" v-model="inputSurat.field.prioritas">
                             <label for="choice-penting">Penting</label>
                         </div>
                         <div class="choice-item">
-                            <input :tabindex="7 + tujuanSuggestionCount" name="prioritas" id="choice-rahasia" type="radio" value="3" v-model="inputSurat.field.prioritas">
+                            <input :tabindex="7 + inputSurat.suggestion.item.length" name="prioritas" id="choice-rahasia" type="radio" value="3" v-model="inputSurat.field.prioritas">
                             <label for="choice-rahasia">Rahasia</label>
                         </div>
                     </div>
                 </div>
+                <div class="field">
+                    <label>File surat</label>
+                    <div class="file-picker-area">
+                        <input ref="inputFileSurat" type="file" accept="image/jpeg,image/png" multiple @change="fileSuratPickerChange">
+                        <div class="file-list" v-if="inputSurat.field.files.length > 0">
+                            <p v-for="(file, idx) in inputSurat.field.files" v-if="!file.isDeleted" @click="showDeleteFileSurat(idx)">{{file.blob ? file.blob.name : file.name}}</p>
+                        </div>
+                        <a :tabindex="8 + inputSurat.suggestion.item.length" v-if="inputSurat.field.files.length < 5" @click="showFileSuratPicker" @keyup.enter="showFileSuratPicker">Lampirkan file (maksimal 5 file JPG atau PNG)</a>
+                    </div>
+                </div>
                 <div class="footer">
-                    <a :tabindex="9 + tujuanSuggestionCount" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
-                    <a :tabindex="8 + tujuanSuggestionCount" class="main-button" @click="simpanSurat" @keyup.enter="simpanSurat">Simpan</a>
+                    <a :tabindex="10 + inputSurat.suggestion.item.length" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
+                    <a :tabindex="9 + inputSurat.suggestion.item.length" class="main-button" @click="simpanSurat" @keyup.enter="simpanSurat">Simpan</a>
                 </div>
             </div>
             <div class="dialog" id="dialog-input-akun" v-if="inputAkun.visible">
@@ -247,17 +296,18 @@
                 <p class="error-message" v-if="dialogDisposisi.error.visible">{{dialogDisposisi.error.message}}</p>
                 <div class="field">
                     <label>Nama tujuan</label>
-                    <input tabindex="1" ref="txtNamaDosen" type="text" placeholder="Nama dosen tujuan disposisi" :value="dialogDisposisi.field.target" @input="getDosenSuggestion" @keyup.enter="selectDisposisiSuggestion(0)" @keyup.down="focusDisposisiSuggestion(0)">
-                    <div class="suggestion" v-if="dialogDisposisi.suggestion.visible">
-                        <div ref="disposisiSuggestionItem" class="suggestion-item" v-for="(dosen, idx) in dialogDisposisi.suggestion.item" :tabindex="2 + idx" @keyup.up="focusDisposisiSuggestion(idx - 1)" @keyup.down="focusDisposisiSuggestion(idx + 1)" @keyup.enter="selectDisposisiSuggestion(idx)" @click="selectDisposisiSuggestion(idx)">
-                            <p class="main">{{dosen.nama}}</p>
-                            <p class="info">{{dosen.jabatan}}</p>
+                    <input tabindex="1" ref="txtNamaTujuan" type="text" placeholder="Nama tujuan disposisi" :value="dialogDisposisi.field.tujuan" @input="getDisposisiSuggestion" @keyup.enter="selectDisposisiSuggestion(0)" @keyup.down="focusDisposisiSuggestion(0)">
+                    <div class="suggestion" v-if="dialogDisposisi.suggestion.loading || dialogDisposisi.suggestion.item.length > 0">
+                        <p class="loading" v-if="dialogDisposisi.suggestion.loading"><i class="fa fa-spinner fa-spin fa-fw"></i></p>
+                        <div ref="disposisiSuggestionItem" class="suggestion-item" v-for="(account, idx) in dialogDisposisi.suggestion.item" :tabindex="2 + idx" @keyup.up="focusDisposisiSuggestion(idx - 1)" @keyup.down="focusDisposisiSuggestion(idx + 1)" @keyup.enter="selectDisposisiSuggestion(idx)" @click="selectDisposisiSuggestion(idx)">
+                            <p class="main">{{account.nama}}</p>
+                            <p class="info">{{account.jabatan}}</p>
                         </div>
                     </div>
                 </div>
                 <div class="field">
-                    <label>Waktu</label>
-                    <input :tabindex="2 + dialogDisposisi.suggestion.item.length" ref="txtWaktuDisposisi" type="text" placeholder="Tanggal dan jam disposisi" v-model.trim="dialogDisposisi.field.waktu" @focus="closeDisposisiSuggestion" @keyup.enter="simpanDisposisi">
+                    <label>Keterangan</label>
+                    <textarea :tabindex="2 + dialogDisposisi.suggestion.item.length" ref="txtKeteranganDisposisi" type="text" placeholder="Keterangan" v-model.trim="dialogDisposisi.field.deskripsi" @focus="closeDisposisiSuggestion"></textarea>
                 </div>
                 <div class="footer">
                     <a :tabindex="4 + dialogDisposisi.suggestion.item.length" @click="closeDialog" @keyup.enter="closeDialog">Batal</a>
@@ -317,23 +367,23 @@
                 </div>
             </div>
         </div>
+        <div ref="lightbox" id="lightbox" v-if="lightbox.visible" @keyup.esc="closeLightbox" tabindex="0">
+            <p v-if="lightbox.loading" id="lightbox-loading"><i class="fa fa-spinner fa-spin fa-fw"></i></p>
+            <a id="lightbox-close" @click="closeLightbox"><i class="fa fa-fw fa-times" aria-hidden="true"></i></a>
+            <img :src="lightbox.data" @load="lightboxLoaded" @keyup.esc="closeLightbox">
+        </div>
     </div>
 
     <script type="text/x-template" id="timeline-item">
         <div class="timeline-item" :class="statusClass">
             <div class="timeline-content">
                 <p class="time">{{waktuAksi}}</p>
-                <p class="value">{{statusMessage}} <span>{{target}}</span></p>
+                <p class="value">{{statusMessage}} <span>{{tujuan}}</span></p>
                 <p class="jabatan">{{jabatan}}</p>
             </div>
             <div class="timeline">
-                <timeline-item v-for="child in children" :id="child.id" :target="child.target" :jabatan="child.jabatan" :waktu="child.waktu" :status="child.status" :children="child.children" @disposisi-click="disposisiClicked" @diarsip-click="diarsipClicked" @ditindak-click="ditindakClicked">
+                <timeline-item v-for="child in children" :id="child.id" :tujuan="child.tujuan" :jabatan="child.jabatan" :waktu="child.waktu" :status="child.status" :children="child.children">
                 </timeline-item>
-                <div v-if="status < 1" class="timeline-act">
-                    <a class="disposisi" @click="disposisiClicked(id)"></a>
-                    <a v-if="children.length === 0" class="diarsip" @click="diarsipClicked(id)"></a>
-                    <a v-if="children.length === 0" class="ditindak" @click="ditindakClicked(id)"></a>
-                </div>
             </div>
         </div>
     </script>
@@ -353,8 +403,6 @@
             decoded = atob(payload),
             payloadData = JSON.parse(decoded);
 
-        console.log(JSON.stringify(payloadData, '', '  '));
-
         // Parse account data
         var account;
         if (localStorage.getItem('account') !== null) {
@@ -370,7 +418,7 @@
             template: '#timeline-item',
             props: {
                 id: Number,
-                target: String,
+                tujuan: String,
                 jabatan: String,
                 waktu: String,
                 status: Number,
@@ -388,20 +436,10 @@
                     else return 'Didisposisikan ke';
                 },
                 waktuAksi: function() {
-                    return moment(this.waktu, 'YYYY-MM-DD HH:mm:ss')
+                    return moment.utc(this.waktu, 'YYYY-MM-DD HH:mm:ss')
+                        .local()
                         .format('DD MMMM YYYY [jam] HH:mm')
                         .replace(' jam 00:00', '');
-                }
-            },
-            methods: {
-                disposisiClicked: function(parent) {
-                    this.$emit('disposisi-click', parent);
-                },
-                diarsipClicked: function(id) {
-                    this.$emit('diarsip-click', id);
-                },
-                ditindakClicked: function(id) {
-                    this.$emit('ditindak-click', id);
                 }
             }
         });
@@ -411,37 +449,50 @@
             el: '#app',
             data: {
                 sidebar: {
+                    visible: false,
                     selected: 0,
                     item: [{
                         value: 0,
                         hasSeparator: false,
                         caption: 'Semua Surat',
                         icon: 'fa-inbox',
-                        visible: true
+                        visible: true,
+                        count: 0
                     }, {
                         value: 1,
                         hasSeparator: false,
                         caption: 'Dalam Proses',
                         icon: 'fa-clock-o',
-                        visible: true
+                        visible: true,
+                        count: 0
                     }, {
                         value: 2,
                         hasSeparator: false,
                         caption: 'Diarsipkan',
                         icon: 'fa-folder',
-                        visible: true
+                        visible: true,
+                        count: 0
                     }, {
                         value: 3,
                         hasSeparator: false,
                         caption: 'Ditindaklanjuti',
                         icon: 'fa-check-circle',
-                        visible: true
+                        visible: true,
+                        count: 0
                     }, {
                         value: 4,
                         hasSeparator: true,
                         caption: 'Kelola Akun',
                         icon: 'fa-users',
-                        visible: payloadData.admin
+                        visible: payloadData.admin,
+                        count: 0
+                    }, {
+                        value: 5,
+                        hasSeparator: !payloadData.admin,
+                        caption: 'Kelola Surat',
+                        icon: 'fa-envelope',
+                        visible: payloadData.input,
+                        count: 0
                     }],
                     account: {
                         id: payloadData.sub,
@@ -454,6 +505,7 @@
                     }
                 },
                 pageList: {
+                    loading: false,
                     page: 1,
                     maxPage: 1,
                     keyword: '',
@@ -465,18 +517,31 @@
                     }
                 },
                 pageDetail: {
+                    loading: false,
                     visible: false,
-                    index: 0,
                     surat: {
-                        id: '',
+                        id: 0,
                         nomor: '',
                         perihal: '',
                         sumber: '',
+                        tujuan: '',
+                        jabatan: '',
                         tanggal: '',
                         waktuTerima: '',
                         prioritas: 0,
                         status: 0
                     },
+                    disposisi: {
+                        id: 0,
+                        parentId: 0,
+                        sumberId: 0,
+                        sumber: '',
+                        jabatan: '',
+                        waktu: '',
+                        status: 0,
+                        deskripsi: ''
+                    },
+                    files: [],
                     timeline: []
                 },
                 inputSurat: {
@@ -495,10 +560,11 @@
                         tujuan: '',
                         tanggal: '',
                         waktuTerima: '',
-                        prioritas: 0
+                        prioritas: 0,
+                        files: []
                     },
                     suggestion: {
-                        visible: false,
+                        loading: false,
                         item: []
                     }
                 },
@@ -528,12 +594,12 @@
                     },
                     field: {
                         parentId: 0,
-                        targetId: 0,
-                        target: '',
-                        waktu: ''
+                        tujuanId: 0,
+                        tujuan: '',
+                        deskripsi: ''
                     },
                     suggestion: {
-                        visible: false,
+                        loading: false,
                         item: []
                     }
                 },
@@ -572,6 +638,11 @@
                         ulangPassword: ''
                     }
                 },
+                lightbox: {
+                    visible: false,
+                    loading: false,
+                    data: ''
+                },
                 dialog: {
                     visible: false,
                     loading: false,
@@ -585,12 +656,12 @@
             },
             computed: {
                 btnAddVisible: function() {
-                    if (this.sidebar.account.penginput !== 1 && this.sidebar.selected < 4) return false;
+                    if (this.sidebar.selected < 4) return false;
                     return true;
                 },
                 btnAddCaption: function() {
                     if (this.sidebar.selected === 4) return 'Akun Baru';
-                    else return 'Surat Baru';
+                    else if (this.sidebar.selected === 5) return 'Surat Baru';
                 },
                 btnAddAction: function() {
                     if (this.sidebar.selected === 4) return this.showInputAkun;
@@ -604,7 +675,13 @@
                     if (this.sidebar.selected === 4) return 'Tidak ada akun yang terdaftar';
                     else return 'Tidak ada surat yang terdaftar';
                 },
-                overlayVisible: function() {
+                loadingOverlayVisible: function() {
+                    return this.pageList.loading ||
+                        this.pageDetail.loading ||
+                        this.inputSurat.suggestion.loading ||
+                        this.dialogDisposisi.suggestion.loading;
+                },
+                dialogOverlayVisible: function() {
                     return this.inputSurat.visible ||
                         this.inputAkun.visible ||
                         this.dialogDisposisi.visible ||
@@ -613,14 +690,14 @@
                         this.editPassword.visible ||
                         this.dialog.visible;
                 },
-                tujuanSuggestionCount: function() {
-                    return this.inputSurat.suggestion.item.length;
-                },
                 listEmpty: function() {
-                    return this.pageList.item.length === 0;
+                    return !this.pageList.loading && this.pageList.item.length === 0;
                 },
-                listIsLoadable: function() {
-                    return this.pageList.page < this.pageList.maxPage;
+                currentKeyword: function() {
+                    return this.pageList.keyword;
+                },
+                currentPage: function() {
+                    return this.pageList.page;
                 }
             },
             filters: {
@@ -643,35 +720,6 @@
                     return src.replace(old, replacement);
                 }
             },
-            watch: {
-                'sidebar.selected': function() {
-                    this.pageList.page = 1;
-                    this.pageList.maxPage = 1;
-                    this.pageList.item = [];
-                    this.pageList.keyword = '';
-                    this.closePageDetail();
-
-                    var apiURL = '/api/surat';
-                    if (this.sidebar.selected === 4) apiURL = '/api/account';
-                    else if (this.sidebar.selected === 3) apiURL = '/api/surat?ditindak';
-                    else if (this.sidebar.selected === 2) apiURL = '/api/surat?diarsip';
-                    else if (this.sidebar.selected === 1) apiURL = '/api/surat?diproses';
-
-                    axios(apiURL).then(function(response) {
-                        app.pageList.page = response.data.page;
-                        app.pageList.maxPage = response.data.maxPage;
-                        app.pageList.item = response.data.item;
-
-                        var listArea = document.getElementById('item-list-area');
-                        if (listArea.className.indexOf('ps-container') === -1) {
-                            Ps.initialize(listArea);
-                        } else {
-                            listArea.scrollTop = 0;
-                            Ps.update(listArea);
-                        }
-                    });
-                }
-            },
             methods: {
                 logout: function() {
                     Cookies.remove('token');
@@ -687,17 +735,93 @@
                 },
                 selectSidebar: function(value) {
                     this.sidebar.selected = value;
+                    this.sidebar.visible = false;
+                    this.loadListItem();
+                },
+                loadListItem: function(keyword, page) {
+                    this.pageList.loading = true;
+                    this.pageList.page = parseInt(page, 10) || 1;
+                    this.pageList.maxPage = 1;
+                    this.pageList.item = [];
+                    this.pageList.keyword = keyword ? keyword : '';
+                    this.pageList.error.visible = false;
+                    this.closePageDetail();
+
+                    var apiURL = '/api/surat?';
+                    if (this.sidebar.selected === 5) apiURL = '/api/surat?kelola';
+                    else if (this.sidebar.selected === 4) apiURL = '/api/account?';
+                    else if (this.sidebar.selected === 3) apiURL = '/api/surat?ditindak';
+                    else if (this.sidebar.selected === 2) apiURL = '/api/surat?diarsip';
+                    else if (this.sidebar.selected === 1) apiURL = '/api/surat?diproses';
+
+                    apiURL += '&page=' + encodeURI(this.pageList.page);
+
+                    if (keyword != null && keyword !== '') {
+                        apiURL += '&keyword=' + encodeURI(keyword);
+                    }
+
+                    axios(apiURL).then(function(response) {
+                        app.pageList.loading = false;
+                        app.pageList.page = response.data.page;
+                        app.pageList.maxPage = response.data.maxPage;
+                        app.pageList.item = response.data.item;
+
+                        console.log(JSON.stringify(response.data, '', '  '));
+
+                        if (response.data.newCount) {
+                            var nTotal = 0,
+                                nDiproses = 0,
+                                nDiarsip = 0,
+                                nDitindak = 0;
+
+                            response.data.newCount.forEach(function(data) {
+                                nTotal += data.count;
+                                if (data.status === 0) nDiproses += data.count;
+                                else if (data.status === 1) nDiarsip += data.count;
+                                else if (data.status === 2) nDitindak += data.count;
+                                else if (data.status === 3) {
+                                    nDiarsip += data.count;
+                                    nDitindak += data.count;
+                                }
+                            });
+
+                            app.sidebar.item[0].count = nTotal;
+                            app.sidebar.item[1].count = nDiproses;
+                            app.sidebar.item[2].count = nDiarsip;
+                            app.sidebar.item[3].count = nDitindak;
+                        }
+
+                        var listArea = document.getElementById('item-list-area');
+                        if (listArea.className.indexOf('ps-container') === -1) {
+                            Ps.initialize(listArea);
+                        } else {
+                            listArea.scrollTop = 0;
+                            Ps.update(listArea);
+                        }
+                    }).catch(function(error) {
+                        var message;
+                        if (error.response) message = error.response.data;
+                        else message = error.message;
+
+                        app.pageList.loading = false;
+                        app.pageList.error.visible = true;
+                        app.pageList.error.message = message;
+                    });
                 },
                 showInputSurat: function() {
+                    this.sidebar.visible = false;
                     this.inputSurat.visible = true;
                     this.inputSurat.isNew = true;
                     this.inputSurat.error.visible = false;
                     this.inputSurat.field.nomor = '';
                     this.inputSurat.field.perihal = '';
                     this.inputSurat.field.sumber = '';
+                    this.inputSurat.field.tujuanId = 0;
+                    this.inputSurat.field.tujuan = '';
                     this.inputSurat.field.tanggal = '';
                     this.inputSurat.field.waktuTerima = '';
                     this.inputSurat.field.prioritas = 0;
+                    this.inputSurat.field.files = [];
 
                     this.$nextTick(function() {
                         this.$refs.txtNomorSurat.focus();
@@ -707,6 +831,15 @@
                     var tanggal = moment(this.pageDetail.surat.tanggal, 'YYYY-MM-DD').format('DD-MM-YYYY'),
                         waktuTerima = moment(this.pageDetail.surat.waktuTerima, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm:ss');
 
+                    var exisitingFiles = [];
+                    this.pageDetail.files.forEach(function(file) {
+                        exisitingFiles.push({
+                            name: file,
+                            isNew: false,
+                            isDeleted: false
+                        });
+                    });
+
                     this.inputSurat.visible = true;
                     this.inputSurat.isNew = false;
                     this.inputSurat.error.visible = false;
@@ -714,30 +847,35 @@
                     this.inputSurat.field.nomor = this.pageDetail.surat.nomor;
                     this.inputSurat.field.perihal = this.pageDetail.surat.perihal;
                     this.inputSurat.field.sumber = this.pageDetail.surat.sumber;
+                    this.inputSurat.field.tujuanId = 0;
+                    this.inputSurat.field.tujuan = '';
                     this.inputSurat.field.tanggal = tanggal;
-                    this.inputSurat.field.waktuTerima = waktuTerima.replace(' jam 00:00:00', '');
+                    this.inputSurat.field.waktuTerima = waktuTerima.replace(' 00:00:00', '');
                     this.inputSurat.field.prioritas = this.pageDetail.surat.prioritas;
+                    this.inputSurat.field.files = exisitingFiles;
 
                     this.$nextTick(function() {
                         this.$refs.txtNomorSurat.focus();
                     });
                 },
                 showDeleteSurat: function() {
-                    var index = this.pageDetail.index,
+                    var index = this.pageList.selected,
                         idSurat = this.pageDetail.surat.id,
                         nomorSurat = this.pageDetail.surat.nomor;
 
                     this.dialog.visible = true;
                     this.dialog.title = 'Hapus Surat';
-                    this.dialog.message = 'Yakin ingin menghapus data surat dengan nomor ' + nomorSurat + ' ?';
+                    this.dialog.message = 'Yakin ingin menghapus surat dengan nomor ' + nomorSurat + ' ?';
                     this.dialog.subCaption = 'Tidak';
                     this.dialog.mainCaption = 'Ya';
                     this.dialog.subAction = function() {
                         app.dialog.visible = false;
                     };
                     this.dialog.mainAction = function() {
+                        app.dialog.loading = true;
                         axios.delete('/api/surat/' + idSurat)
                             .then(function() {
+                                app.dialog.loading = false;
                                 app.pageList.item.splice(index, 1);
                                 app.closePageDetail();
                                 app.closeDialog();
@@ -747,6 +885,7 @@
                                 if (error.response) message = error.response.data;
                                 else message = error.message;
 
+                                app.dialog.loading = false;
                                 app.dialog.title = 'Error';
                                 app.dialog.message = 'Gagal menghapus data surat. ' + message;
                                 app.dialog.subCaption = '';
@@ -761,7 +900,82 @@
                         this.$refs.mainDialogButton.focus();
                     });
                 },
+                showFileSuratPicker: function() {
+                    this.inputSurat.error.visible = false;
+                    this.$refs.inputFileSurat.click();
+                },
+                fileSuratPickerChange: function() {
+                    var files = this.$refs.inputFileSurat.files,
+                        nExistingFile = this.inputSurat.field.files.length,
+                        nNewFile = files.length,
+                        error = false,
+                        errorMessage = '',
+                        newFilesArray = [];
+
+                    if (nExistingFile + nNewFile > 5) {
+                        error = true;
+                        errorMessage = 'Jumlah file maksimal lima gambar';
+                    } else {
+                        for (var i = 0; i < files.length; i++) {
+                            if (files[i].type !== 'image/jpeg' && files[i].type !== 'image/png') {
+                                error = true;
+                                errorMessage = 'File harus berupa gambar dengan format JPG atau PNG';
+                                break;
+                            }
+
+                            if (files[i].size > 5000000) {
+                                error = true;
+                                errorMessage = 'File maksimal berukuran 5 MB';
+                                break;
+                            }
+
+                            newFilesArray.push({
+                                blob: files[i],
+                                isNew: true,
+                                isDeleted: false
+                            });
+                        }
+                    }
+
+                    if (error) {
+                        this.inputSurat.error.visible = true;
+                        this.inputSurat.error.message = errorMessage;
+                        return;
+                    }
+
+                    this.inputSurat.field.files = this.inputSurat.field.files.concat(newFilesArray);
+                },
+                showDeleteFileSurat: function(index) {
+                    var file = this.inputSurat.field.files[index],
+                        fileName = file.blob ? file.blob.name : file.name;
+
+                    this.inputSurat.visible = false;
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Hapus File';
+                    this.dialog.message = 'Yakin ingin menghapus file ' + fileName + ' ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialog.visible = false;
+                        app.inputSurat.visible = true;
+                    };
+                    this.dialog.mainAction = function() {
+                        if (file.isNew) {
+                            app.inputSurat.field.files.splice(index, 1);
+                        } else {
+                            file.isDeleted = true;
+                        }
+
+                        app.dialog.visible = false;
+                        app.inputSurat.visible = true;
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
+                    });
+                },
                 showInputAkun: function() {
+                    this.sidebar.visible = false;
                     this.inputAkun.visible = true;
                     this.inputAkun.isNew = true;
                     this.inputAkun.error.visible = false;
@@ -870,32 +1084,118 @@
                     this.dialogDisposisi.visible = true;
                     this.dialogDisposisi.error.visible = false;
                     this.dialogDisposisi.field.parentId = parseInt(parent, 10) | 0;
-                    this.dialogDisposisi.field.targetId = 0;
-                    this.dialogDisposisi.field.target = '';
-                    this.dialogDisposisi.field.waktu = '';
+                    this.dialogDisposisi.field.tujuanId = 0;
+                    this.dialogDisposisi.field.tujuan = '';
+                    this.dialogDisposisi.field.deskripsi = '';
 
                     this.$nextTick(function() {
-                        this.$refs.txtNamaDosen.focus();
+                        this.$refs.txtNamaTujuan.focus();
                     });
                 },
-                showDialogDiarsip: function(id) {
-                    this.dialogDiarsip.visible = true;
-                    this.dialogDiarsip.error.visible = false;
-                    this.dialogDiarsip.field.id = parseInt(id, 10) | 0;
-                    this.dialogDiarsip.field.waktu = '';
+                showDialogDiarsip: function() {
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Arsipkan Surat';
+                    this.dialog.message = 'Yakin ingin mengarsipkan surat ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        app.dialog.loading = true;
+
+                        var id = parseInt(app.pageDetail.disposisi.id, 10) | 0,
+                            suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
+
+                        axios.post('/api/diarsip', {
+                                id: id,
+                                suratId: suratId
+                            })
+                            .then(function() {
+                                var index = app.pageList.selected;
+
+                                app.pageList.item[index].status = 1;
+                                app.dialog.loading = false;
+                                app.closeDialog();
+                                app.closePageDetail();
+                                app.selectSurat(index);
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.dialog.loading = false;
+                                app.dialog.title = 'Error';
+                                app.dialog.message = 'Gagal mengarsipkan surat. ' + message;
+                                app.dialog.subCaption = '';
+                                app.dialog.mainCaption = 'OK';
+                                app.dialog.subAction = function() {
+                                    app.dialog.visible = false;
+                                };
+                                app.dialog.mainAction = function() {
+                                    app.dialog.visible = false;
+                                };
+
+                                return;
+                            });
+                    }
 
                     this.$nextTick(function() {
-                        this.$refs.txtWaktuDiarsip.focus();
+                        this.$refs.mainDialogButton.focus();
                     });
                 },
-                showDialogDitindak: function(id) {
-                    this.dialogDitindak.visible = true;
-                    this.dialogDitindak.error.visible = false;
-                    this.dialogDitindak.field.id = parseInt(id, 10) | 0;
-                    this.dialogDitindak.field.waktu = '';
+                showDialogDitindak: function() {
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Tindaklanjuti Surat';
+                    this.dialog.message = 'Yakin ingin menindaklanjuti surat ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        app.dialog.loading = true;
+
+                        var id = parseInt(app.pageDetail.disposisi.id, 10) | 0,
+                            suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
+
+                        axios.post('/api/ditindak', {
+                                id: id,
+                                suratId: suratId
+                            })
+                            .then(function() {
+                                var index = app.pageList.selected;
+
+                                app.pageList.item[index].status = 2;
+                                app.dialog.loading = false;
+                                app.closeDialog();
+                                app.closePageDetail();
+                                app.selectSurat(index);
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.dialog.loading = false;
+                                app.dialog.title = 'Error';
+                                app.dialog.message = 'Gagal menindaklanjuti surat. ' + message;
+                                app.dialog.subCaption = '';
+                                app.dialog.mainCaption = 'OK';
+                                app.dialog.subAction = function() {
+                                    app.dialog.visible = false;
+                                };
+                                app.dialog.mainAction = function() {
+                                    app.dialog.visible = false;
+                                };
+
+                                return;
+                            });
+                    }
 
                     this.$nextTick(function() {
-                        this.$refs.txtWaktuDitindak.focus();
+                        this.$refs.mainDialogButton.focus();
                     });
                 },
                 showDialogLogout: function() {
@@ -915,8 +1215,8 @@
                 closeDialog: function() {
                     if (this.dialog.loading) return;
 
-                    if (this.inputSurat.visible && this.inputSurat.suggestion.visible) {
-                        this.closeTujuanSuggestion();
+                    if (this.inputSurat.visible && this.inputSurat.suggestion.item.length > 0) {
+                        this.inputSurat.suggestion = [];
                         return;
                     }
 
@@ -930,6 +1230,9 @@
                     this.dialog.loading = false;
                 },
                 simpanSurat: function() {
+                    // If still loading, stop
+                    if (this.dialog.loading) return;
+
                     // Validate input
                     if (this.inputSurat.field.nomor === '') {
                         this.inputSurat.error.visible = true;
@@ -946,6 +1249,12 @@
                     if (this.inputSurat.field.sumber === '') {
                         this.inputSurat.error.visible = true;
                         this.inputSurat.error.message = 'Sumber surat harus diisi';
+                        return;
+                    }
+
+                    if (this.inputSurat.isNew && this.inputSurat.field.tujuanId === 0) {
+                        this.inputSurat.error.visible = true;
+                        this.inputSurat.error.message = 'Tujuan surat harus diisi';
                         return;
                     }
 
@@ -975,26 +1284,42 @@
                         app.dialog.visible = false;
                     };
                     this.dialog.mainAction = function() {
+                        app.dialog.loading = true;
                         var method = app.inputSurat.isNew ? 'post' : 'put';
-                        tanggalSurat = tanggalSurat.format('YYYY-MM-DD');
-                        waktuTerima = waktuTerima.format('YYYY-MM-DD HH:mm:ss');
+
+                        var formData = new FormData();
+                        formData.append('id', app.inputSurat.field.id);
+                        formData.append('nomor', app.inputSurat.field.nomor);
+                        formData.append('perihal', app.inputSurat.field.perihal);
+                        formData.append('sumber', app.inputSurat.field.sumber);
+                        formData.append('tujuanId', app.inputSurat.field.tujuanId);
+                        formData.append('tanggal', tanggalSurat.format('YYYY-MM-DD'));
+                        formData.append('waktuTerima', waktuTerima.format('YYYY-MM-DD HH:mm:ss'));
+                        formData.append('prioritas', app.inputSurat.field.prioritas);
+
+                        app.inputSurat.field.files.forEach(function(file) {
+                            if (file.isNew) {
+                                formData.append('files', file.blob, file.blob.name);
+                            }
+
+                            if (file.isDeleted) {
+                                formData.append('deleted', file.name);
+                            }
+                        });
 
                         axios({
                                 method: method,
                                 url: '/api/surat',
-                                data: {
-                                    id: app.inputSurat.field.id,
-                                    nomor: app.inputSurat.field.nomor,
-                                    perihal: app.inputSurat.field.perihal,
-                                    sumber: app.inputSurat.field.sumber,
-                                    tanggal: tanggalSurat,
-                                    waktuTerima: waktuTerima,
-                                    prioritas: parseInt(app.inputSurat.field.prioritas, 10) | 0
+                                data: formData,
+                                headers: {
+                                    'Content-Type': 'multipart/form-data'
                                 }
                             })
                             .then(function() {
+                                app.dialog.loading = false;
+
                                 if (!app.inputSurat.isNew) {
-                                    var index = app.pageDetail.index;
+                                    var index = app.pageList.selected;
 
                                     app.pageList.item[index].nomor = app.inputSurat.field.nomor;
                                     app.pageList.item[index].perihal = app.inputSurat.field.perihal;
@@ -1003,34 +1328,22 @@
                                     app.pageList.item[index].waktuTerima = waktuTerima;
                                     app.pageList.item[index].prioritas = parseInt(app.inputSurat.field.prioritas, 10) | 0;
 
-                                    app.pageDetail.surat.nomor = app.inputSurat.field.nomor;
-                                    app.pageDetail.surat.perihal = app.inputSurat.field.perihal;
-                                    app.pageDetail.surat.sumber = app.inputSurat.field.sumber;
-                                    app.pageDetail.surat.tanggal = tanggalSurat;
-                                    app.pageDetail.surat.waktuTerima = waktuTerima;
-                                    app.pageDetail.surat.prioritas = parseInt(app.inputSurat.field.prioritas, 10) | 0;
-
                                     app.closeDialog();
-                                    return;
+                                    app.closePageDetail();
+                                    app.selectSurat(index);
+                                } else {
+                                    app.closeDialog();
+                                    app.loadListItem();
                                 }
-
-                                axios('/api/surat').then(function(response) {
-                                    app.pageList.page = response.data.page;
-                                    app.pageList.maxPage = response.data.maxPage;
-                                    app.pageList.item = response.data.item;
-                                    app.closeDialog();
-
-                                    var listArea = document.getElementById('item-list-area');
-                                    Ps.initialize(listArea);
-                                });
                             })
                             .catch(function(error) {
                                 var message;
                                 if (error.response) message = error.response.data;
                                 else message = error.message;
 
-                                app.inputSurat.visible = true;
                                 app.dialog.visible = false;
+                                app.dialog.loading = false;
+                                app.inputSurat.visible = true;
                                 app.inputSurat.error.visible = true;
                                 app.inputSurat.error.message = message;
 
@@ -1118,37 +1431,16 @@
                                     app.pageList.item[index].jabatan = app.inputAkun.field.jabatan;
                                     app.pageList.item[index].telepon = app.inputAkun.field.telepon;
                                     app.pageList.item[index].admin = parseInt(app.inputAkun.field.admin, 10) | 0;
+                                    app.pageList.item[index].penginput = parseInt(app.inputAkun.field.penginput, 10) | 0;
 
                                     app.dialog.loading = false;
                                     app.closeDialog();
                                     return;
                                 }
 
-                                axios('/api/account')
-                                    .then(function(response) {
-                                        app.pageList.page = response.data.page;
-                                        app.pageList.maxPage = response.data.maxPage;
-                                        app.pageList.item = response.data.item;
-                                        app.dialog.loading = false;
-                                        app.closeDialog();
-
-                                        var listArea = document.getElementById('item-list-area');
-                                        Ps.initialize(listArea);
-                                    })
-                                    .catch(function(error) {
-                                        var message;
-                                        if (error.response) message = error.response.data;
-                                        else message = error.message;
-
-                                        app.dialog.loading = false;
-                                        app.dialog.title = 'Error';
-                                        app.dialog.message = message;
-                                        app.dialog.subCaption = '';
-                                        app.dialog.mainCaption = 'OK';
-                                        app.dialog.mainAction = function() {
-                                            app.dialog.visible = false;
-                                        }
-                                    });
+                                app.dialog.loading = false;
+                                app.closeDialog();
+                                app.loadListItem();
                             })
                             .catch(function(error) {
                                 var message;
@@ -1160,186 +1452,6 @@
                                 app.inputAkun.visible = true;
                                 app.inputAkun.error.visible = true;
                                 app.inputAkun.error.message = message;
-                            });
-                    }
-
-                    this.$nextTick(function() {
-                        this.$refs.mainDialogButton.focus();
-                    });
-                },
-                simpanDisposisi: function() {
-                    // Validate input
-                    if (this.dialogDisposisi.field.targetId === 0) {
-                        this.dialogDisposisi.error.visible = true;
-                        this.dialogDisposisi.error.message = 'Dosen tujuan disposisi harus dipilih dari daftar yang tersedia';
-                        return;
-                    }
-
-                    var waktuDisposisi = moment(this.dialogDisposisi.field.waktu, 'DD-MM-YYYY HH:mm:ss');
-                    if (!waktuDisposisi.isValid()) {
-                        this.dialogDisposisi.error.visible = true;
-                        this.dialogDisposisi.error.message = 'Waktu disposisi harus format tanggal/bulan/tahun jam:menit:detik';
-                        return;
-                    }
-
-                    // Show dialog confirmation
-                    this.dialogDisposisi.visible = false;
-                    this.dialog.visible = true;
-                    this.dialog.title = 'Disposisi Surat';
-                    this.dialog.message = 'Yakin ingin menyimpan data disposisi ?';
-                    this.dialog.subCaption = 'Tidak';
-                    this.dialog.mainCaption = 'Ya';
-                    this.dialog.subAction = function() {
-                        app.dialogDisposisi.visible = true;
-                        app.dialog.visible = false;
-                    };
-                    this.dialog.mainAction = function() {
-                        var suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
-
-                        axios.post('/api/disposisi', {
-                                suratId: suratId,
-                                parentId: app.dialogDisposisi.field.parentId,
-                                targetId: app.dialogDisposisi.field.targetId,
-                                modified: waktuDisposisi.format('YYYY-MM-DD HH:mm:ss')
-                            })
-                            .then(function() {
-                                axios('/api/surat/' + suratId).then(function(response) {
-                                    app.setDetailSurat(response.data);
-                                    app.closeDialog();
-
-                                    app.$nextTick(function() {
-                                        var detailArea = document.getElementById('detail-content');
-                                        Ps.initialize(detailArea);
-                                    });
-                                });
-                            })
-                            .catch(function(error) {
-                                var message;
-                                if (error.response) message = error.response.data;
-                                else message = error.message;
-
-                                app.dialogDisposisi.visible = true;
-                                app.dialog.visible = false;
-                                app.dialogDisposisi.error.visible = true;
-                                app.dialogDisposisi.error.message = message;
-
-                                return;
-                            });
-                    }
-
-                    this.$nextTick(function() {
-                        this.$refs.mainDialogButton.focus();
-                    });
-                },
-                simpanDiarsip: function() {
-                    // Validate input
-                    var waktu = moment(this.dialogDiarsip.field.waktu, 'DD-MM-YYYY HH:mm:ss');
-                    if (!waktu.isValid()) {
-                        this.dialogDiarsip.error.visible = true;
-                        this.dialogDiarsip.error.message = 'Waktu pengarsipan harus format tanggal/bulan/tahun jam:menit:detik';
-                        return;
-                    }
-
-                    // Show dialog confirmation
-                    this.dialogDiarsip.visible = false;
-                    this.dialog.visible = true;
-                    this.dialog.title = 'Arsipkan Surat';
-                    this.dialog.message = 'Yakin ingin menyimpan data pengarsipan surat ?';
-                    this.dialog.subCaption = 'Tidak';
-                    this.dialog.mainCaption = 'Ya';
-                    this.dialog.subAction = function() {
-                        app.dialogDiarsip.visible = true;
-                        app.dialog.visible = false;
-                    };
-                    this.dialog.mainAction = function() {
-                        var id = app.dialogDiarsip.field.id,
-                            suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
-
-                        axios.post('/api/diarsip', {
-                                id: id,
-                                suratId: suratId,
-                                modified: waktu.format('YYYY-MM-DD HH:mm:ss')
-                            })
-                            .then(function() {
-                                axios('/api/surat/' + suratId).then(function(response) {
-                                    app.setDetailSurat(response.data);
-                                    app.closeDialog();
-
-                                    app.$nextTick(function() {
-                                        var detailArea = document.getElementById('detail-content');
-                                        Ps.initialize(detailArea);
-                                    });
-                                });
-                            })
-                            .catch(function(error) {
-                                var message;
-                                if (error.response) message = error.response.data;
-                                else message = error.message;
-
-                                app.dialogDiarsip.visible = true;
-                                app.dialog.visible = false;
-                                app.dialogDiarsip.error.visible = true;
-                                app.dialogDiarsip.error.message = message;
-
-                                return;
-                            });
-                    }
-
-                    this.$nextTick(function() {
-                        this.$refs.mainDialogButton.focus();
-                    });
-                },
-                simpanDitindak: function() {
-                    // Validate input
-                    var waktu = moment(this.dialogDitindak.field.waktu, 'DD-MM-YYYY HH:mm:ss');
-                    if (!waktu.isValid()) {
-                        this.dialogDitindak.error.visible = true;
-                        this.dialogDitindak.error.message = 'Waktu ditindaklanjuti harus format tanggal/bulan/tahun jam:menit:detik';
-                        return;
-                    }
-
-                    // Show dialog confirmation
-                    this.dialogDitindak.visible = false;
-                    this.dialog.visible = true;
-                    this.dialog.title = 'Tindaklanjuti Surat';
-                    this.dialog.message = 'Yakin ingin menyimpan data surat ditindaklanjuti ?';
-                    this.dialog.subCaption = 'Tidak';
-                    this.dialog.mainCaption = 'Ya';
-                    this.dialog.subAction = function() {
-                        app.dialogDitindak.visible = true;
-                        app.dialog.visible = false;
-                    };
-                    this.dialog.mainAction = function() {
-                        var id = app.dialogDitindak.field.id,
-                            suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
-
-                        axios.post('/api/ditindak', {
-                                id: id,
-                                suratId: suratId,
-                                modified: waktu.format('YYYY-MM-DD HH:mm:ss')
-                            })
-                            .then(function() {
-                                axios('/api/surat/' + suratId).then(function(response) {
-                                    app.setDetailSurat(response.data);
-                                    app.closeDialog();
-
-                                    app.$nextTick(function() {
-                                        var detailArea = document.getElementById('detail-content');
-                                        Ps.initialize(detailArea);
-                                    });
-                                });
-                            })
-                            .catch(function(error) {
-                                var message;
-                                if (error.response) message = error.response.data;
-                                else message = error.message;
-
-                                app.dialogDitindak.visible = true;
-                                app.dialog.visible = false;
-                                app.dialogDitindak.error.visible = true;
-                                app.dialogDitindak.error.message = message;
-
-                                return;
                             });
                     }
 
@@ -1405,64 +1517,126 @@
                         this.$refs.mainDialogButton.focus();
                     });
                 },
-                selectSurat: function(id, idx) {
-                    if (id === this.pageList.selected) {
+                selectSurat: function(idx) {
+                    if (idx === this.pageList.selected) {
                         return;
                     }
 
-                    this.pageList.selected = id;
-                    this.pageDetail.index = idx;
+                    var surat = this.pageList.item[idx];
 
-                    axios('/api/surat/' + id).then(function(response) {
-                        app.pageDetail.visible = true;
+                    this.pageList.selected = idx;
+                    this.pageList.error.visible = false;
+
+                    this.pageDetail.surat.id = '';
+                    this.pageDetail.visible = true;
+                    this.pageDetail.loading = true;
+
+                    var url = '/api/surat/id/' + surat.id;
+                    if (this.sidebar.selected === 5) url += '?kelola';
+
+                    axios(url).then(function(response) {
+                        app.pageDetail.loading = false;
                         app.setDetailSurat(response.data);
 
                         app.$nextTick(function() {
                             var detailArea = document.getElementById('detail-content');
-                            if (detailArea.className.indexOf('ps-container') === -1) {
-                                Ps.initialize(detailArea);
-                            } else {
-                                detailArea.scrollTop = 0;
-                                Ps.update(detailArea);
-                            }
+                            Ps.initialize(detailArea);
                         });
+                    }).catch(function(error) {
+                        var message;
+                        if (error.response) message = error.response.data;
+                        else message = error.message;
+
+                        app.pageList.selected = 0;
+                        app.pageDetail.loading = false;
+                        app.pageDetail.visible = false;
+                        app.pageList.error.visible = true;
+                        app.pageList.error.message = message;
                     });
                 },
                 setDetailSurat: function(data) {
-                    app.pageDetail.surat.id = data.surat.id;
-                    app.pageDetail.surat.nomor = data.surat.nomor;
-                    app.pageDetail.surat.perihal = data.surat.perihal;
-                    app.pageDetail.surat.sumber = data.surat.sumber;
-                    app.pageDetail.surat.tanggal = data.surat.tanggal;
-                    app.pageDetail.surat.waktuTerima = data.surat.waktuTerima;
-                    app.pageDetail.surat.prioritas = data.surat.prioritas;
-                    app.pageDetail.surat.status = data.surat.status;
-                    app.pageDetail.timeline = data.timeline;
+                    this.pageDetail.surat.id = data.surat.id;
+                    this.pageDetail.surat.nomor = data.surat.nomor;
+                    this.pageDetail.surat.perihal = data.surat.perihal;
+                    this.pageDetail.surat.sumber = data.surat.sumber;
+                    this.pageDetail.surat.tujuan = data.surat.tujuan;
+                    this.pageDetail.surat.jabatan = data.surat.jabatan;
+                    this.pageDetail.surat.tanggal = data.surat.tanggal;
+                    this.pageDetail.surat.waktuTerima = data.surat.waktuTerima;
+                    this.pageDetail.surat.prioritas = data.surat.prioritas;
+                    this.pageDetail.surat.status = data.surat.status;
+
+                    this.pageDetail.disposisi.id = data.disposisi.id;
+                    this.pageDetail.disposisi.parentId = data.disposisi.parentId;
+                    this.pageDetail.disposisi.sumberId = data.disposisi.sumberId;
+                    this.pageDetail.disposisi.sumber = data.disposisi.sumber;
+                    this.pageDetail.disposisi.jabatan = data.disposisi.jabatan;
+                    this.pageDetail.disposisi.waktu = data.disposisi.waktu;
+                    this.pageDetail.disposisi.status = data.disposisi.status;
+                    this.pageDetail.disposisi.deskripsi = data.disposisi.deskripsi;
+
+                    this.pageDetail.files = data.files;
+                    this.pageDetail.timeline = data.timeline;
+
+                    var indexSurat = this.pageList.selected;
+                    if (this.pageList.item[indexSurat].read === 1) return;
+
+                    this.pageList.item[indexSurat].read = 1;
+
+                    this.sidebar.item[0].count -= 1;
+                    if (data.disposisi.status === 0) this.sidebar.item[1].count -= 1;
+                    else if (data.disposisi.status === 1) this.sidebar.item[2].count -= 1;
+                    else if (data.disposisi.status === 2) this.sidebar.item[3].count -= 1;
+                    else if (data.disposisi.status === 3) {
+                        this.sidebar.item[2].count -= 1;
+                        this.sidebar.item[3].count -= 1;
+                    }
                 },
                 closePageDetail: function() {
                     this.pageList.selected = '';
                     this.pageDetail.visible = false;
                 },
+                showLightbox: function(name) {
+                    this.lightbox.visible = true;
+                    this.lightbox.loading = true;
+                    this.lightbox.data = '/api/surat/image/' + name;
+                },
+                closeLightbox: function() {
+                    if (this.lightbox.loading) return;
+                    this.lightbox.visible = false;
+                },
+                lightboxLoaded: function() {
+                    this.lightbox.loading = false;
+                    this.$refs.lightbox.focus();
+                },
                 getTujuanSuggestion: _.debounce(function(e) {
                     var value = e.target.value.trim();
+                    this.inputSurat.error.visible = false;
                     this.inputSurat.field.tujuan = value;
                     this.inputSurat.field.tujuanId = 0;
+                    this.inputSurat.suggestion.item = [];
 
-                    if (value === '') {
-                        this.closeTujuanSuggestion();
-                        return;
-                    }
+                    if (value === '') return;
 
-                    axios('/api/account?keyword=' + encodeURI(value)).then(function(response) {
-                        app.inputSurat.suggestion.visible = true;
-                        app.inputSurat.suggestion.item = response.data.item;
-                    });
+                    this.inputSurat.suggestion.loading = true;
+                    axios('/api/account?keyword=' + encodeURI(value))
+                        .then(function(response) {
+                            app.inputSurat.suggestion.loading = false;
+                            app.inputSurat.suggestion.item = response.data.item;
+                        })
+                        .catch(function(response) {
+                            var message;
+                            if (error.response) message = error.response.data;
+                            else message = error.message;
+
+                            app.inputSurat.suggestion.loading = false;
+                            app.inputSurat.error.visible = true;
+                            app.inputSurat.error.message = message;
+                        });
                 }, 300),
                 closeTujuanSuggestion: function() {
-                    if (this.inputSurat.suggestion.visible) {
-                        this.inputSurat.suggestion.visible = false;
-                        this.inputSurat.suggestion.item = [];
-                    }
+                    if (this.inputSurat.suggestion.loading || this.inputSurat.suggestion.item.length === 0) return;
+                    this.inputSurat.suggestion.item = [];
                 },
                 selectTujuanSuggestion: function(idx) {
                     var index = parseInt(idx, 10) | 0,
@@ -1477,88 +1651,137 @@
                     if (idx < 0 || idx >= this.$refs.tujuanSuggestionItem.length) return;
                     this.$refs.tujuanSuggestionItem[idx].focus();
                 },
-                getDosenSuggestion: _.debounce(function(e) {
+                getDisposisiSuggestion: _.debounce(function(e) {
                     var value = e.target.value.trim();
-                    this.dialogDisposisi.field.target = value;
+                    this.dialogDisposisi.error.visible = false;
+                    this.dialogDisposisi.field.tujuan = value;
+                    this.dialogDisposisi.field.tujuanId = 0;
+                    this.dialogDisposisi.suggestion.item = [];
 
-                    if (value === '') {
-                        this.dialogDisposisi.suggestion.visible = false;
-                        this.dialogDisposisi.suggestion.item = [];
+                    if (value === '') return;
+
+                    this.dialogDisposisi.suggestion.loading = true;
+                    axios('/api/account?keyword=' + encodeURI(value))
+                        .then(function(response) {
+                            app.dialogDisposisi.suggestion.loading = false;
+                            app.dialogDisposisi.suggestion.item = response.data.item;
+                        })
+                        .catch(function(response) {
+                            var message;
+                            if (error.response) message = error.response.data;
+                            else message = error.message;
+
+                            app.dialogDisposisi.suggestion.loading = false;
+                            app.dialogDisposisi.error.visible = true;
+                            app.dialogDisposisi.error.message = message;
+                        });
+                }, 300),
+                closeDisposisiSuggestion: function() {
+                    if (this.dialogDisposisi.suggestion.loading || this.dialogDisposisi.suggestion.item.length === 0) return;
+                    this.dialogDisposisi.suggestion.item = [];
+                },
+                selectDisposisiSuggestion: function(idx) {
+                    var index = parseInt(idx, 10) | 0,
+                        account = this.dialogDisposisi.suggestion.item[index];
+
+                    if (account.id === this.sidebar.account.id) {
+                        app.dialogDisposisi.error.visible = true;
+                        app.dialogDisposisi.error.message = 'Tidak bisa mendisposisi ke diri sendiri';
                         return;
                     }
 
-                    axios('/api/dosen?keyword=' + encodeURI(value)).then(function(response) {
-                        app.dialogDisposisi.suggestion.visible = true;
-                        app.dialogDisposisi.suggestion.item = response.data.item;
+                    this.dialogDisposisi.field.tujuanId = account.id;
+                    this.dialogDisposisi.field.tujuan = account.nama;
+
+                    this.$refs.txtKeteranganDisposisi.focus();
+                },
+                focusDisposisiSuggestion: function(idx) {
+                    if (idx < 0 || idx >= this.$refs.disposisiSuggestionItem.length) return;
+                    this.$refs.disposisiSuggestionItem[idx].focus();
+                },
+                simpanDisposisi: function() {
+                    // Validate input
+                    if (this.dialogDisposisi.field.tujuanId === 0) {
+                        this.dialogDisposisi.error.visible = true;
+                        this.dialogDisposisi.error.message = 'Tujuan disposisi harus dipilih dari daftar yang tersedia';
+                        return;
+                    }
+
+                    // Show dialog confirmation
+                    this.dialogDisposisi.visible = false;
+                    this.dialog.visible = true;
+                    this.dialog.title = 'Disposisi Surat';
+                    this.dialog.message = 'Yakin ingin mendisposisikan surat ?';
+                    this.dialog.subCaption = 'Tidak';
+                    this.dialog.mainCaption = 'Ya';
+                    this.dialog.subAction = function() {
+                        app.dialogDisposisi.visible = true;
+                        app.dialog.visible = false;
+                    };
+                    this.dialog.mainAction = function() {
+                        app.dialog.loading = true;
+
+                        var suratId = parseInt(app.pageDetail.surat.id, 10) | 0;
+
+                        axios.post('/api/disposisi', {
+                                suratId: suratId,
+                                parentId: app.dialogDisposisi.field.parentId,
+                                tujuanId: app.dialogDisposisi.field.tujuanId,
+                                deskripsi: app.dialogDisposisi.field.deskripsi
+                            })
+                            .then(function() {
+                                var index = app.pageList.selected;
+
+                                app.dialog.loading = false;
+                                app.closeDialog();
+                                app.closePageDetail();
+                                app.selectSurat(index);
+                            })
+                            .catch(function(error) {
+                                var message;
+                                if (error.response) message = error.response.data;
+                                else message = error.message;
+
+                                app.dialog.visible = false;
+                                app.dialog.loading = false;
+                                app.dialogDisposisi.visible = true;
+                                app.dialogDisposisi.error.visible = true;
+                                app.dialogDisposisi.error.message = message;
+
+                                return;
+                            });
+                    }
+
+                    this.$nextTick(function() {
+                        this.$refs.mainDialogButton.focus();
                     });
-                }, 300),
+                },
                 filterPageList: _.debounce(function(e) {
-                    var value = e.target.value.trim(),
-                        keyword = encodeURI(value);
-
-                    this.pageList.page = 1;
-                    this.pageList.maxPage = 1;
-                    this.pageList.keyword = value;
-                    this.pageList.item = [];
-
-                    var apiURL = '/api/surat?';
-                    if (this.sidebar.selected === 5) apiURL = '/api/dosen?';
-                    else if (this.sidebar.selected === 4) apiURL = '/api/account?';
-                    else if (this.sidebar.selected === 3) apiURL = '/api/surat?ditindak';
-                    else if (this.sidebar.selected === 2) apiURL = '/api/surat?diarsip';
-                    else if (this.sidebar.selected === 1) apiURL = '/api/surat?diproses';
-
-                    apiURL += '&keyword=' + keyword;
-                    axios(apiURL).then(function(response) {
-                        app.pageList.page = response.data.page;
-                        app.pageList.maxPage = response.data.maxPage;
-                        app.pageList.item = response.data.item;
-
-                        var listArea = document.getElementById('item-list-area');
-                        if (listArea.className.indexOf('ps-container') === -1) {
-                            Ps.initialize(listArea);
-                        } else {
-                            listArea.scrollTop = 0;
-                            Ps.update(listArea);
-                        }
-                    });
+                    var value = e.target.value.trim();
+                    this.loadListItem(value);
                 }, 300),
-                loadMore: function() {
-                    var nextPage = this.pageList.page + 1,
-                        keyword = encodeURI(this.pageList.keyword),
-                        apiURL = '/api/surat?';
+                paginationChange: _.debounce(function(e) {
+                    var value = e.target.value.trim(),
+                        pageNumber = parseInt(value, 10) || 1;
 
-                    if (this.sidebar.selected === 5) apiURL = '/api/dosen?';
-                    else if (this.sidebar.selected === 4) apiURL = '/api/account?';
-                    else if (this.sidebar.selected === 3) apiURL = '/api/surat?ditindak';
-                    else if (this.sidebar.selected === 2) apiURL = '/api/surat?diarsip';
-                    else if (this.sidebar.selected === 1) apiURL = '/api/surat?diproses';
-
-                    apiURL += '&page=' + nextPage;
-                    apiURL += '&keyword=' + keyword;
-
-                    axios(apiURL).then(function(response) {
-                        app.pageList.page = response.data.page;
-                        app.pageList.maxPage = response.data.maxPage;
-                        app.pageList.item.push.apply(response.data.item);
-
-                        var listArea = document.getElementById('item-list-area');
-                        listArea.scrollTop = 0;
-                        Ps.update(listArea);
-                    });
-                }
+                    this.loadListItem(this.pageList.keyword, pageNumber);
+                }, 300)
             }
         });
 
+        var sidebarLinkContainer = document.getElementById('link-container');
+        Ps.initialize(sidebarLinkContainer);
+
         document.getElementById('app').removeAttribute('style');
 
-        axios('/api/surat').then(function(response) {
-            app.pageList.page = response.data.page;
-            app.pageList.maxPage = response.data.maxPage;
-            app.pageList.item = response.data.item;
-            var listArea = document.getElementById('item-list-area');
-            Ps.initialize(listArea);
-        });
+        document.onkeypress = function(e) {
+            if (app.loadingOverlayVisible) {
+                e.preventDefault();
+            }
+        };
+
+        app.loadListItem();
+
     </script>
 </body>
 

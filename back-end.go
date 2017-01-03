@@ -54,6 +54,17 @@ func (backend *BackEnd) ServeApp() {
 	router.POST("/api/account/password", hdl.UpdatePassword)
 	router.DELETE("/api/account/:id", hdl.DeleteAccount)
 
+	router.GET("/api/surat", hdl.SelectSurat)
+	router.GET("/api/surat/id/:id", hdl.GetSurat)
+	router.GET("/api/surat/image/:name", hdl.GetFileSurat)
+	router.PUT("/api/surat", hdl.UpdateSurat)
+	router.POST("/api/surat", hdl.InsertSurat)
+	router.DELETE("/api/surat/:id", hdl.DeleteSurat)
+
+	router.POST("/api/disposisi", hdl.InsertDisposisi)
+	router.POST("/api/diarsip", hdl.InsertDiarsip)
+	router.POST("/api/ditindak", hdl.InsertDitindak)
+
 	// Set panic handler
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, arg interface{}) {
 		http.Error(w, fmt.Sprint(arg), 500)
