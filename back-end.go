@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"simas/handler"
+	"simas/model"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -12,16 +13,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const dbSource = "root:@/simas"
-
 type BackEnd struct {
 	DB         *sqlx.DB
+	Config     model.Configuration
 	PortNumber int
 }
 
-func NewBackEnd(port int) BackEnd {
+func NewBackEnd(port int, config model.Configuration) BackEnd {
+	dbSource := fmt.Sprintf("%s:%s@/%s",
+		config.DatabaseUser,
+		config.DatabasePassword,
+		config.DatabaseName)
+
 	backEnd := BackEnd{
 		DB:         sqlx.MustConnect("mysql", dbSource),
+		Config:     config,
 		PortNumber: port,
 	}
 
@@ -33,7 +39,8 @@ func NewBackEnd(port int) BackEnd {
 func (backend *BackEnd) ServeApp() {
 	// Create handler
 	hdl := handler.Handler{
-		DB: backend.DB,
+		DB:     backend.DB,
+		Config: backend.Config,
 	}
 
 	// Create router

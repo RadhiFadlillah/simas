@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/rand"
 	"net/http"
+	"simas/model"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -22,7 +23,8 @@ func init() {
 }
 
 type Handler struct {
-	DB *sqlx.DB
+	DB     *sqlx.DB
+	Config model.Configuration
 }
 
 func checkToken(r *http.Request) (jwt.MapClaims, error) {

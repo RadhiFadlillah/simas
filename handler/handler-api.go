@@ -24,17 +24,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const (
-	simasDomain    string = "simas.tokoyulia.com"
-	zenzivaUserKey string = "jcyhzp"
-	zenzivaPassKey string = "teYa52CLLLR5FHdtQDdY"
-	emailAddress   string = "m.radhi.f@gmail.com"
-	emailPassword  string = "Z9t7U6NsPhQYTWGSMppbkFSsp"
-	emailServer    string = "smtp.gmail.com"
-	emailPort      int    = 587
-	fileSuratDir   string = "."
-)
-
 func (handler *Handler) Login(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Decode request
 	var request model.LoginRequest
@@ -208,13 +197,13 @@ func (handler *Handler) InsertAccount(w http.ResponseWriter, r *http.Request, ps
 	smsMessage := fmt.Sprintf(
 		`Anda telah didaftarkan ke Sistem Manajemen Surat Fakultas Teknik UPR. 
 		Silakan login ke %s dengan menggunakan email %s dan password %s`,
-		simasDomain, account.Email, password)
+		handler.Config.AppDomain, account.Email, password)
 
 	// Prepare email
 	buffer := bytes.Buffer{}
 	newAccountTemplate.Execute(&buffer, model.EmailNewAccount{
 		Account:  account,
-		Domain:   simasDomain,
+		Domain:   handler.Config.AppDomain,
 		Password: randomPassword})
 
 	// Send SMS and Email
@@ -508,7 +497,7 @@ func (handler *Handler) GetSurat(w http.ResponseWriter, r *http.Request, ps http
 	handler.DB.MustExec("UPDATE disposisi SET `read` = 1 WHERE id = ?", disposisi.ID)
 
 	// Retrieve image files
-	filePattern := fmt.Sprintf("%s/%d-*", fileSuratDir, intIdSurat)
+	filePattern := fmt.Sprintf("%s/%d-*", handler.Config.FileDirectory, intIdSurat)
 
 	imageFiles, _ := filepath.Glob(filePattern)
 	if len(imageFiles) == 0 {
@@ -625,7 +614,7 @@ func (handler *Handler) InsertSurat(w http.ResponseWriter, r *http.Request, ps h
 	jpgFile := []string{}
 	pngFile := []string{}
 	for i, uploadedFile := range form.File["files"] {
-		fileName := fmt.Sprintf("%s/%d-%d", fileSuratDir, surat.ID, i+1)
+		fileName := fmt.Sprintf("%s/%d-%d", handler.Config.FileDirectory, surat.ID, i+1)
 
 		contentType := uploadedFile.Header.Get("Content-Type")
 		if contentType == "image/jpeg" {
@@ -671,7 +660,7 @@ func (handler *Handler) InsertSurat(w http.ResponseWriter, r *http.Request, ps h
 	buffer := bytes.Buffer{}
 	newSuratTemplate.Execute(&buffer, model.EmailNewSurat{
 		Surat:  surat,
-		Domain: simasDomain})
+		Domain: handler.Config.AppDomain})
 
 	emailSubject := fmt.Sprintf("Surat Baru No. %s - SIMAS FT UPR", surat.Nomor)
 
@@ -727,7 +716,7 @@ func (handler *Handler) UpdateSurat(w http.ResponseWriter, r *http.Request, ps h
 	}
 
 	// Retrieve existing files
-	filePattern := fmt.Sprintf("%s/%d-*", fileSuratDir, suratID)
+	filePattern := fmt.Sprintf("%s/%d-*", handler.Config.FileDirectory, suratID)
 	existingFiles, _ := filepath.Glob(filePattern)
 
 	// Fetch file to be deleted
@@ -760,7 +749,7 @@ func (handler *Handler) UpdateSurat(w http.ResponseWriter, r *http.Request, ps h
 
 	// Delete file
 	for _, deletedFile := range deletedFiles {
-		path := filepath.Join(fileSuratDir, deletedFile)
+		path := filepath.Join(handler.Config.FileDirectory, deletedFile)
 		os.Remove(path)
 	}
 
@@ -779,7 +768,7 @@ func (handler *Handler) UpdateSurat(w http.ResponseWriter, r *http.Request, ps h
 	jpgFile := []string{}
 	pngFile := []string{}
 	for i, uploadedFile := range newFiles {
-		fileName := fmt.Sprintf("%s/%d-%d", fileSuratDir, suratID, maxNumber+i+1)
+		fileName := fmt.Sprintf("%s/%d-%d", handler.Config.FileDirectory, suratID, maxNumber+i+1)
 
 		contentType := uploadedFile.Header.Get("Content-Type")
 		if contentType == "image/jpeg" {
@@ -827,11 +816,11 @@ func (handler *Handler) DeleteSurat(w http.ResponseWriter, r *http.Request, ps h
 	handler.DB.MustExec("DELETE FROM surat WHERE id = ?", suratID)
 
 	// Delete existing files
-	filePattern := fmt.Sprintf("%s/%s-*", fileSuratDir, suratID)
+	filePattern := fmt.Sprintf("%s/%s-*", handler.Config.FileDirectory, suratID)
 	existingFiles, _ := filepath.Glob(filePattern)
 
 	for _, fileName := range existingFiles {
-		path := filepath.Join(fileSuratDir, fileName)
+		path := filepath.Join(handler.Config.FileDirectory, fileName)
 		os.Remove(path)
 	}
 
@@ -842,7 +831,7 @@ func (handler *Handler) DeleteSurat(w http.ResponseWriter, r *http.Request, ps h
 
 func (handler *Handler) GetFileSurat(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fileName := ps.ByName("name")
-	path := filepath.Join(fileSuratDir, fileName)
+	path := filepath.Join(handler.Config.FileDirectory, fileName)
 
 	if f, err := os.Stat(path); err == nil && !f.IsDir() {
 		delay()
@@ -906,7 +895,7 @@ func (handler *Handler) InsertDisposisi(w http.ResponseWriter, r *http.Request, 
 		Sumber:  sumber.Nama,
 		Jabatan: sumber.Jabatan,
 		Surat:   surat,
-		Domain:  simasDomain})
+		Domain:  handler.Config.AppDomain})
 
 	emailSubject := fmt.Sprintf("Disposisi Surat %s Dari %s - SIMAS FT UPR", surat.Nomor, sumber.Jabatan)
 
@@ -1041,7 +1030,7 @@ func (handler *Handler) updateParentStatus(tx *sqlx.Tx, suratID int, parentID in
 						Nomor:   item.Nomor,
 						Perihal: item.Perihal,
 						Status:  childStatus,
-						Domain:  simasDomain})
+						Domain:  handler.Config.AppDomain})
 
 					emailSubject := fmt.Sprintf("Surat No. %s %s - SIMAS FT UPR", item.Nomor, statusValue)
 
@@ -1076,8 +1065,8 @@ func (handler *Handler) sendSMS(number string, message string) {
 	}
 
 	zenzivaQuery := url.Values{}
-	zenzivaQuery.Set("userkey", zenzivaUserKey)
-	zenzivaQuery.Set("passkey", zenzivaPassKey)
+	zenzivaQuery.Set("userkey", handler.Config.ZenzivaUserKey)
+	zenzivaQuery.Set("passkey", handler.Config.ZenzivaPassKey)
 	zenzivaQuery.Set("nohp", number)
 	zenzivaQuery.Set("pesan", message)
 
@@ -1093,7 +1082,15 @@ func (handler *Handler) sendEmail(target string, subject string, body string) {
 		"Content-type: text/html" + "\r\n" +
 		"Subject: " + subject + "\r\n\r\n"
 
-	auth := smtp.PlainAuth("", emailAddress, emailPassword, emailServer)
-	server := fmt.Sprintf("%s:%d", emailServer, emailPort)
-	smtp.SendMail(server, auth, emailAddress, []string{target}, []byte(header+body))
+	auth := smtp.PlainAuth("",
+		handler.Config.EmailAddress,
+		handler.Config.EmailPassword,
+		handler.Config.EmailServer)
+
+	server := fmt.Sprintf("%s:%d",
+		handler.Config.EmailServer,
+		handler.Config.EmailServerPort)
+
+	smtp.SendMail(server, auth, handler.Config.EmailAddress,
+		[]string{target}, []byte(header+body))
 }

@@ -132,3 +132,17 @@ type EmailNewStatus struct {
 	Status  int
 	Domain  string
 }
+
+type Configuration struct {
+	AppDomain        string
+	DatabaseUser     string
+	DatabasePassword string
+	DatabaseName     string
+	ZenzivaUserKey   string
+	ZenzivaPassKey   string
+	EmailAddress     string
+	EmailPassword    string
+	EmailServer      string
+	EmailServerPort  int
+	FileDirectory    string
+}
