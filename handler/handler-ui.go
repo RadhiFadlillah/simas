@@ -21,6 +21,7 @@ func (handler *Handler) ServeFile(w http.ResponseWriter, r *http.Request, ps htt
 func (handler *Handler) ServeIndexPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	if _, err := checkToken(r); err != nil {
 		redirectPage(w, r, "/login")
+		return
 	}
 
 	path := viewDir + "/index.html"
@@ -30,6 +31,7 @@ func (handler *Handler) ServeIndexPage(w http.ResponseWriter, r *http.Request, p
 func (handler *Handler) ServeLoginPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	if _, err := checkToken(r); err == nil {
 		redirectPage(w, r, "/")
+		return
 	}
 
 	path := viewDir + "/login.html"
