@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"os"
 	"simas/model"
+	"strings"
 )
 
 const configPassword = "DTsDAGTQaVQVaeJ9DkCgQiTVPZW8FgBr"
@@ -50,6 +51,10 @@ func main() {
 	config := model.Configuration{}
 	buffer := bytes.NewBuffer(decrypted)
 	err = gob.NewDecoder(buffer).Decode(&config)
+	checkError(err)
+
+	// Create file directory if needed
+	err = os.MkdirAll(config.FileDirectory, os.ModePerm)
 	checkError(err)
 
 	// Create backend
@@ -97,9 +102,17 @@ func startConfiguration() {
 	fmt.Print("\n", "11/11", "\t", "Direktori untuk menyimpan file surat yang diupload (contoh /home/imageDir) :", "\n\t")
 	fmt.Scanln(&config.FileDirectory)
 
+	// Remove trailing path from file directory
+	fileDir := strings.TrimSpace(config.FileDirectory)
+	if fileDir[len(fileDir)-1:] == "/" {
+		fileDir = fileDir[:len(fileDir)-1]
+	}
+	config.FileDirectory = fileDir
+
 	// Encrypt configuration
 	buffer := bytes.Buffer{}
 	err := gob.NewEncoder(&buffer).Encode(&config)
+	checkError(err)
 
 	encrypted, err := encrypt([]byte(configPassword), buffer.Bytes())
 	checkError(err)
