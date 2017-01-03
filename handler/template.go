@@ -43,7 +43,7 @@ const emailNewAccount string = `
 <body style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;">
     <div class="main" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:100%;max-width:800px;margin:auto;border:1px solid #ddd;background-color:white;color:#424242;">
         <div class="header" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;color:white;background-color:#2d3e50;text-align:center;padding:16px;">
-            <img src="https://s30.postimg.org/54vx5emht/logo_email.jpg" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:80%;max-width:200px;margin-bottom:8px;">
+            <img src="https://[[.Domain]]/res/logo-email.jpg" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:80%;max-width:200px;margin-bottom:8px;">
             <p style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;font-weight:600;font-size:14px;">Sistem Manajemen Surat</p>
         </div>
         <div class="content" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;padding:16px;font-size:16px;">
@@ -120,7 +120,7 @@ const emailNewSurat string = `
 <body style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;">
     <div class="main" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:100%;max-width:800px;margin:auto;border:1px solid #ddd;background-color:white;color:#424242;">
         <div class="header" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;color:white;background-color:#2d3e50;text-align:center;padding:16px;">
-            <img src="https://s30.postimg.org/54vx5emht/logo_email.jpg" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:80%;max-width:200px;margin-bottom:8px;">
+            <img src="https://[[.Domain]]/res/logo-email.jpg" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:80%;max-width:200px;margin-bottom:8px;">
             <p style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;font-weight:600;font-size:14px;">Sistem Manajemen Surat</p>
         </div>
         <div class="content" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;padding:16px;font-size:16px;">
@@ -179,7 +179,7 @@ const emailNewDisposisi string = `
 <body style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;">
     <div class="main" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:100%;max-width:800px;margin:auto;border:1px solid #ddd;background-color:white;color:#424242;">
         <div class="header" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;color:white;background-color:#2d3e50;text-align:center;padding:16px;">
-            <img src="https://s30.postimg.org/54vx5emht/logo_email.jpg" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:80%;max-width:200px;margin-bottom:8px;">
+            <img src="https://[[.Domain]]/res/logo-email.jpg" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:80%;max-width:200px;margin-bottom:8px;">
             <p style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;font-weight:600;font-size:14px;">Sistem Manajemen Surat</p>
         </div>
         <div class="content" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;padding:16px;font-size:16px;">
@@ -238,7 +238,7 @@ const emailNewStatus string = `
 <body style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;">
     <div class="main" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:100%;max-width:800px;margin:auto;border:1px solid #ddd;background-color:white;color:#424242;">
         <div class="header" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;color:white;background-color:#2d3e50;text-align:center;padding:16px;">
-            <img src="https://s30.postimg.org/54vx5emht/logo_email.jpg" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:80%;max-width:200px;margin-bottom:8px;">
+            <img src="https://[[.Domain]]/res/logo-email.jpg" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;width:80%;max-width:200px;margin-bottom:8px;">
             <p style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;font-weight:600;font-size:14px;">Sistem Manajemen Surat</p>
         </div>
         <div class="content" style="margin:0;padding:0;box-sizing:border-box;font-family:'Source Sans Pro', sans-serif;padding:16px;font-size:16px;">
