@@ -1,21 +1,36 @@
 package handler
 
 import (
+	"bytes"
+	"io"
+	"mime"
 	"net/http"
-	"os"
+	"path/filepath"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 func (handler *Handler) ServeFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	path := viewDir + r.URL.Path
-
-	if f, err := os.Stat(path); err == nil && !f.IsDir() {
-		http.ServeFile(w, r, path)
-		return
+	// Read asset path
+	path := r.URL.Path
+	if path[0:1] == "/" {
+		path = path[1:]
 	}
 
-	http.NotFound(w, r)
+	// Load asset
+	asset, err := Asset(path)
+	checkError(err)
+
+	// Set response header content type
+	ext := filepath.Ext(path)
+	mimeType := mime.TypeByExtension(ext)
+	if mimeType != "" {
+		w.Header().Set("Content-Type", mimeType)
+	}
+
+	// Serve asset
+	buffer := bytes.NewBuffer(asset)
+	io.Copy(w, buffer)
 }
 
 func (handler *Handler) ServeIndexPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -24,8 +39,15 @@ func (handler *Handler) ServeIndexPage(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	path := viewDir + "/index.html"
-	http.ServeFile(w, r, path)
+	// Load asset
+	path := "index.html"
+	asset, err := Asset(path)
+	checkError(err)
+
+	// Serve asset
+	w.Header().Set("Content-Type", "text/html")
+	buffer := bytes.NewBuffer(asset)
+	io.Copy(w, buffer)
 }
 
 func (handler *Handler) ServeLoginPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -34,6 +56,17 @@ func (handler *Handler) ServeLoginPage(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	path := viewDir + "/login.html"
-	http.ServeFile(w, r, path)
+	// Load asset
+	path := "login.html"
+	asset, err := Asset(path)
+	checkError(err)
+
+	// Serve asset
+	w.Header().Set("Content-Type", "text/html")
+	buffer := bytes.NewBuffer(asset)
+	io.Copy(w, buffer)
+}
+
+func loadAsset(path string) {
+
 }

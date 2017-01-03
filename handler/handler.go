@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	viewDir     string = "./view"
 	tokenSecret string = "mxGXCGMKuaewWjfUQbtJ6vYdHJVLkUUej2YsUnKJhMM4PTqcrvjHb7T27iAsFj4S"
 	letters     string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 )

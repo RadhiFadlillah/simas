@@ -1,3 +1,5 @@
+//go:generate go-bindata -pkg handler -prefix view/ -ignore \.*\.less -o handler/assets.go view/...
+
 package main
 
 import (
