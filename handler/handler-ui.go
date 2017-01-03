@@ -66,7 +66,3 @@ func (handler *Handler) ServeLoginPage(w http.ResponseWriter, r *http.Request, p
 	buffer := bytes.NewBuffer(asset)
 	io.Copy(w, buffer)
 }
-
-func loadAsset(path string) {
-
-}
