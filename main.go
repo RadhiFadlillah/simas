@@ -166,6 +166,6 @@ func decrypt(key, value []byte) ([]byte, error) {
 
 func checkError(err error) {
 	if err != nil && err != sql.ErrNoRows {
-		log.Fatalln(err)
+		log.Fatalln("Error:", err)
 	}
 }
