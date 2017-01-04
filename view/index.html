@@ -369,8 +369,9 @@
         </div>
         <div ref="lightbox" id="lightbox" v-if="lightbox.visible" @keyup.esc="closeLightbox" tabindex="0">
             <p v-if="lightbox.loading" id="lightbox-loading"><i class="fa fa-spinner fa-spin fa-fw"></i></p>
+            <p v-if="lightbox.error" id="lightbox-error">Gagal mengambil gambar</p>
             <a id="lightbox-close" @click="closeLightbox"><i class="fa fa-fw fa-times" aria-hidden="true"></i></a>
-            <img :src="lightbox.data" @load="lightboxLoaded" @keyup.esc="closeLightbox">
+            <img v-show="!lightbox.error" :src="lightbox.data" @load="lightboxLoaded" @error="lightboxError" @keyup.esc="closeLightbox">
         </div>
     </div>
 
@@ -641,6 +642,7 @@
                 lightbox: {
                     visible: false,
                     loading: false,
+                    error: true,
                     data: ''
                 },
                 dialog: {
@@ -1601,6 +1603,7 @@
                 showLightbox: function(name) {
                     this.lightbox.visible = true;
                     this.lightbox.loading = true;
+                    this.lightbox.error = false;
                     this.lightbox.data = '/api/surat/image/' + name;
                 },
                 closeLightbox: function() {
@@ -1609,6 +1612,11 @@
                 },
                 lightboxLoaded: function() {
                     this.lightbox.loading = false;
+                    this.$refs.lightbox.focus();
+                },
+                lightboxError: function() {
+                    this.lightbox.loading = false;
+                    this.lightbox.error = true;
                     this.$refs.lightbox.focus();
                 },
                 getTujuanSuggestion: _.debounce(function(e) {

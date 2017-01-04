@@ -736,6 +736,7 @@ textarea {
                                 content: @icon-ditindak-diarsip;
                             }
                             &.file-list {
+                                align-self: flex-end;
                                 display: flex;
                                 flex-flow: row wrap;
                                 margin: -4px;
@@ -993,6 +994,7 @@ textarea {
             background-color: rgba(0, 0, 0, 0.5);
             color: white;
         }
+        #lightbox-error,
         #lightbox-loading {
             color: white;
             width: 200px;
@@ -1004,6 +1006,9 @@ textarea {
             line-height: 48px;
             margin-top: -24px;
             font-size: 3em;
+        }
+        #lightbox-error {
+            font-size: @font-size;
         }
     }
     #dialog-overlay {
