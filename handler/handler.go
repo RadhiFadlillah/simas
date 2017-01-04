@@ -3,6 +3,7 @@ package handler
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"math/rand"
 	"net/http"
 	"simas/model"
@@ -80,7 +81,7 @@ func randomString(n int) string {
 
 func checkError(err error) {
 	if err != nil && err != sql.ErrNoRows {
-		panic(err)
+		log.Fatalln(err)
 	}
 }
 

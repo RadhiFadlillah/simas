@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"simas/model"
 	"strings"
@@ -39,7 +40,7 @@ func main() {
 	// Load configuration file
 	configFile, err := ioutil.ReadFile("./config")
 	if err != nil {
-		fmt.Println("Lakukan konfigurasi terlebih dahulu")
+		log.Fatalln("Lakukan konfigurasi terlebih dahulu")
 		os.Exit(1)
 	}
 
@@ -165,6 +166,6 @@ func decrypt(key, value []byte) ([]byte, error) {
 
 func checkError(err error) {
 	if err != nil && err != sql.ErrNoRows {
-		panic(err)
+		log.Fatalln(err)
 	}
 }
