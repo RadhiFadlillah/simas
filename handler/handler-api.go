@@ -504,6 +504,10 @@ func (handler *Handler) GetSurat(w http.ResponseWriter, r *http.Request, ps http
 		imageFiles = make([]string, 0)
 	}
 
+	for i, name := range imageFiles {
+		imageFiles[i] = filepath.Base(name)
+	}
+
 	// Encode result
 	pageSurat := model.PageSurat{
 		Surat:     surat,
