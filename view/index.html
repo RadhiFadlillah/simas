@@ -1019,9 +1019,11 @@
                         penginput: this.sidebar.account.penginput
                     };
 
+                    this.sidebar.visible = false;
                     this.showEditAkun(akun, -1);
                 },
                 showEditPassword: function() {
+                    this.sidebar.visible = false;
                     this.editPassword.visible = true;
                     this.editPassword.isNew = true;
                     this.editPassword.error.visible = false;
