@@ -1,6 +1,11 @@
 #!/bin/bash
 # Script to generate password for config file
 
+if [ -s config-pass.go ]
+then
+	exit 0
+fi
+
 password=`date +%s | sha256sum | base64 | head -c 64`
 
 {
