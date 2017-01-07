@@ -1,4 +1,4 @@
-//go:generate go-bindata -pkg handler -prefix view/ -ignore \.*\.less -o handler/assets.go view/...
+//go:generate ./gen-pass.sh && go-bindata -pkg handler -prefix view/ -ignore \.*\.less -o handler/assets.go view/...
 
 package main
 
@@ -19,8 +19,6 @@ import (
 	"simas/model"
 	"strings"
 )
-
-const configPassword = "DTsDAGTQaVQVaeJ9DkCgQiTVPZW8FgBr"
 
 var (
 	startConfig = flag.Bool("config", false, "Menjalankan proses konfigurasi aplikasi")

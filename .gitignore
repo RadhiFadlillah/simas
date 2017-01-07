@@ -25,4 +25,5 @@ _testmain.go
 
 # Exclude generated file
 simas
-config
+config-pass.go
+.config
