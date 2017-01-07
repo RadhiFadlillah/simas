@@ -34,8 +34,8 @@ func (handler *Handler) ServeFile(w http.ResponseWriter, r *http.Request, ps htt
 }
 
 func (handler *Handler) ServeIndexPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	if _, err := checkToken(r); err != nil {
-		redirectPage(w, r, "/login")
+	if _, err := handler.checkToken(r); err != nil {
+		handler.redirectPage(w, r, "/login")
 		return
 	}
 
@@ -51,8 +51,8 @@ func (handler *Handler) ServeIndexPage(w http.ResponseWriter, r *http.Request, p
 }
 
 func (handler *Handler) ServeLoginPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	if _, err := checkToken(r); err == nil {
-		redirectPage(w, r, "/")
+	if _, err := handler.checkToken(r); err == nil {
+		handler.redirectPage(w, r, "/")
 		return
 	}
 

@@ -78,7 +78,7 @@ func (handler *Handler) Login(w http.ResponseWriter, r *http.Request, ps httprou
 		"input": isPenginput,
 	})
 
-	tokenString, err := token.SignedString([]byte(tokenSecret))
+	tokenString, err := token.SignedString([]byte(handler.Config.TokenSecret))
 	checkError(err)
 
 	// Return login result
@@ -95,7 +95,7 @@ func (handler *Handler) Login(w http.ResponseWriter, r *http.Request, ps httprou
 
 func (handler *Handler) SelectAccount(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	tokenMustExist(r)
+	handler.tokenMustExist(r)
 
 	// Parse URL query
 	queries := r.URL.Query()
@@ -154,7 +154,7 @@ func (handler *Handler) SelectAccount(w http.ResponseWriter, r *http.Request, ps
 
 func (handler *Handler) InsertAccount(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	tokenMustExist(r)
+	handler.tokenMustExist(r)
 
 	// Decode request
 	var account model.Account
@@ -174,7 +174,7 @@ func (handler *Handler) InsertAccount(w http.ResponseWriter, r *http.Request, ps
 	}
 
 	// Generate password
-	randomPassword := randomString(10)
+	randomPassword := handler.randomString(10)
 
 	// Hash password with bcrypt
 	password := []byte(randomPassword)
@@ -218,7 +218,7 @@ func (handler *Handler) InsertAccount(w http.ResponseWriter, r *http.Request, ps
 
 func (handler *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	tokenMustExist(r)
+	handler.tokenMustExist(r)
 
 	// Decode request
 	var account model.Account
@@ -279,7 +279,7 @@ func (handler *Handler) UpdateAccount(w http.ResponseWriter, r *http.Request, ps
 
 func (handler *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	tokenMustExist(r)
+	handler.tokenMustExist(r)
 
 	// Get id account from URL address
 	idAccount := ps.ByName("id")
@@ -318,7 +318,7 @@ func (handler *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request, ps
 
 func (handler *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	claims := tokenMustExist(r)
+	claims := handler.tokenMustExist(r)
 
 	// Decode request
 	var request model.UpdatePasswordRequest
@@ -358,7 +358,7 @@ func (handler *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request, p
 
 func (handler *Handler) SelectSurat(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	claims := tokenMustExist(r)
+	claims := handler.tokenMustExist(r)
 
 	// Parse URL query
 	queries := r.URL.Query()
@@ -452,7 +452,7 @@ func (handler *Handler) SelectSurat(w http.ResponseWriter, r *http.Request, ps h
 
 func (handler *Handler) GetSurat(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	claims := tokenMustExist(r)
+	claims := handler.tokenMustExist(r)
 
 	// Get id surat from URL address
 	idSurat := ps.ByName("id")
@@ -523,7 +523,7 @@ func (handler *Handler) GetSurat(w http.ResponseWriter, r *http.Request, ps http
 
 func (handler *Handler) InsertSurat(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	tokenMustExist(r)
+	handler.tokenMustExist(r)
 
 	// Decode form request
 	reader, err := r.MultipartReader()
@@ -682,7 +682,7 @@ func (handler *Handler) InsertSurat(w http.ResponseWriter, r *http.Request, ps h
 
 func (handler *Handler) UpdateSurat(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	tokenMustExist(r)
+	handler.tokenMustExist(r)
 
 	// Decode request
 	reader, err := r.MultipartReader()
@@ -811,7 +811,7 @@ func (handler *Handler) UpdateSurat(w http.ResponseWriter, r *http.Request, ps h
 
 func (handler *Handler) DeleteSurat(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	tokenMustExist(r)
+	handler.tokenMustExist(r)
 
 	// Get id from URL
 	suratID := ps.ByName("id")
@@ -848,7 +848,7 @@ func (handler *Handler) GetFileSurat(w http.ResponseWriter, r *http.Request, ps 
 
 func (handler *Handler) InsertDisposisi(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	tokenMustExist(r)
+	handler.tokenMustExist(r)
 
 	// Decode request
 	var disposisi model.Disposisi
@@ -917,7 +917,7 @@ func (handler *Handler) InsertDisposisi(w http.ResponseWriter, r *http.Request, 
 
 func (handler *Handler) InsertDiarsip(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	tokenMustExist(r)
+	handler.tokenMustExist(r)
 
 	// Decode request
 	var disposisi model.Disposisi
@@ -942,7 +942,7 @@ func (handler *Handler) InsertDiarsip(w http.ResponseWriter, r *http.Request, ps
 
 func (handler *Handler) InsertDitindak(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Check token
-	tokenMustExist(r)
+	handler.tokenMustExist(r)
 
 	// Decode request
 	var disposisi model.Disposisi

@@ -145,4 +145,5 @@ type Configuration struct {
 	EmailServer      string
 	EmailServerPort  int
 	FileDirectory    string
+	TokenSecret      string
 }

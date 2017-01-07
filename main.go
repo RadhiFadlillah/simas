@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
+	crand "crypto/rand"
 	"database/sql"
 	"encoding/gob"
 	"errors"
@@ -15,6 +15,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
 	"simas/model"
 	"strings"
@@ -36,7 +37,7 @@ func main() {
 	}
 
 	// Load configuration file
-	configFile, err := ioutil.ReadFile("./config")
+	configFile, err := ioutil.ReadFile("./.config")
 	if err != nil {
 		log.Fatalln("Lakukan konfigurasi terlebih dahulu")
 		os.Exit(1)
@@ -108,6 +109,16 @@ func startConfiguration() {
 	}
 	config.FileDirectory = fileDir
 
+	// Generate token secret
+	byteSecret := make([]byte, 64)
+	letters := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+
+	for i := range byteSecret {
+		byteSecret[i] = letters[rand.Intn(len(letters))]
+	}
+
+	config.TokenSecret = string(byteSecret)
+
 	// Encrypt configuration
 	buffer := bytes.Buffer{}
 	err := gob.NewEncoder(&buffer).Encode(&config)
@@ -117,7 +128,7 @@ func startConfiguration() {
 	checkError(err)
 
 	// Save config to file
-	configFile, _ := os.Create("./config")
+	configFile, _ := os.Create("./.config")
 	defer configFile.Close()
 
 	_, err = configFile.Write(encrypted)
@@ -133,7 +144,7 @@ func encrypt(key, value []byte) ([]byte, error) {
 	ciphertext := make([]byte, aes.BlockSize+len(value))
 	iv := ciphertext[:aes.BlockSize]
 
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+	if _, err := io.ReadFull(crand.Reader, iv); err != nil {
 		return nil, err
 	}
 
