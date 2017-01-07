@@ -1,4 +1,5 @@
-//go:generate ./gen-pass.sh && go-bindata -pkg handler -prefix view/ -ignore \.*\.less -o handler/assets.go view/...
+//go:generate ./gen-pass.sh
+//go:generate go-bindata -pkg handler -prefix view/ -ignore \.*\.less -o handler/assets.go view/...
 
 package main
 
