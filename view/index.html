@@ -1208,7 +1208,10 @@
                     this.dialog.message = 'Yakin ingin log out dari aplikasi ?';
                     this.dialog.subCaption = 'Tidak';
                     this.dialog.mainCaption = 'Ya';
-                    this.dialog.mainAction = this.logout;
+                    this.dialog.mainAction = function() {
+                        app.dialog.loading = true;
+                        app.logout;
+                    };
                     this.dialog.subAction = function() {
                         app.dialog.visible = false;
                     };
@@ -1499,7 +1502,6 @@
                                 password: app.editPassword.field.password
                             })
                             .then(function() {
-                                app.dialog.loading = false;
                                 app.logout();
                             })
                             .catch(function(error) {
