@@ -98,6 +98,10 @@ Dengan menggunakan aplikasi ini, ketiga masalah lama dapat teratasi :
 |![Halaman login](https://github.com/RadhiFadlillah/simas/blob/master/readme/screenshot/mobile-1.png)|![Halaman daftar surat](https://github.com/RadhiFadlillah/simas/blob/master/readme/screenshot/mobile-2.png)|![Halaman detail surat](https://github.com/RadhiFadlillah/simas/blob/master/readme/screenshot/mobile-3.png)|
 |:-:|:-:|:-:|
 
+## Lisensi
+
+SIMAS disebarkan dengan lisensi [MIT](http://choosealicense.com/licenses/mit/) sehingga setiap orang dapat dengan bebas mendownload, menggunakan dan memodifikasi aplikasi ini, dengan syarat tetap memberikan atribusi kepada [Radhi Fadlillah](https://github.com/RadhiFadlillah).
+
 ## Kredit
 
 Ikon dan yang digunakan untuk illustrasi proses kerja di atas adalah karya [Freepik](http://www.freepik.com/) dan didownload di [Flaticon](www.flaticon.com)
