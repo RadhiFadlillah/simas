@@ -1,4 +1,4 @@
-# SIMAS
+<p align="center"><a href="https://github.com/RadhiFadlillah/simas" _target="blank"><img width="400" src="https://raw.githubusercontent.com/RadhiFadlillah/simas/master/readme/logo.png"></img></a></p>
 
 SIMAS adalah aplikasi Sistem Manajemen Surat yang dikembangkan untuk Fakultas Teknik Universitas Palangkaraya. Aplikasi ini berbasis web dan dikembangkan menggunakan bahasa pemrograman Go untuk back-end dan framework Vue.js untuk front-end.
 
